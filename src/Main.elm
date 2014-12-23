@@ -141,7 +141,7 @@ generateEnemy n {time} =
     getX _ (_, s) = Random.generate (Random.float 0 width) s
     xs = List.map fst (List.scanl getX (width/2, seed) (List.repeat n 0))
   in
-    List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=1 }) xs
+    List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=2 }) xs
 
 generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
