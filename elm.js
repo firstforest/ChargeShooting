@@ -200,16 +200,34 @@ Elm.ChargeShooting.make = function (_elm) {
    $Signal = Elm.Signal.make(_elm),
    $Text = Elm.Text.make(_elm),
    $Time = Elm.Time.make(_elm);
-   var makeBullet = F3(function (x,
+   var makeBullet = F4(function (time,
+   x,
    y,
    l) {
-      return {_: {}
-             ,level: l
-             ,size: 5
-             ,vx: 0
-             ,vy: -5
-             ,x: x
-             ,y: y};
+      return function () {
+         var f = F2(function (l,h) {
+            return $Basics.fst(A2($Random.generate,
+            A2($Random.$float,l,h),
+            $Random.initialSeed($Basics.round(time))));
+         });
+         var vx = _U.eq(l,1) ? 0 : A2(f,
+         -5,
+         5);
+         var c = _U.eq(l,
+         1) ? $Color.black : A4($Color.hsla,
+         $Basics.degrees(A2(f,0,360)),
+         0.9,
+         0.6,
+         0.7);
+         return {_: {}
+                ,color: c
+                ,level: l
+                ,size: l * 3
+                ,vx: vx
+                ,vy: -5
+                ,x: x
+                ,y: y};
+      }();
    });
    var generateBullet = F2(function (_v0,
    _v1) {
@@ -217,23 +235,49 @@ Elm.ChargeShooting.make = function (_elm) {
          switch (_v1.ctor)
          {case "_Tuple2":
             return function () {
-                 return _U.cmp(_v1._0.size,
-                 20) > 0 && $Basics.not(_v0.isDown) ? {ctor: "_Tuple2"
-                                                      ,_0: _U.replace([["size"
-                                                                       ,_v1._0.size - 15]],
-                                                      _v1._0)
-                                                      ,_1: A2($List._op["::"],
-                                                      A3(makeBullet,
-                                                      _v1._0.x,
-                                                      _v1._0.y,
-                                                      1),
-                                                      _v1._1)} : {ctor: "_Tuple2"
-                                                                 ,_0: _v1._0
-                                                                 ,_1: _v1._1};
+                 return _v0.isDown ? {ctor: "_Tuple2"
+                                     ,_0: _v1._0
+                                     ,_1: _v1._1} : _U.cmp(_v1._0.size,
+                 25) > 0 ? {ctor: "_Tuple2"
+                           ,_0: _U.replace([["size"
+                                            ,_v1._0.size - 5]],
+                           _v1._0)
+                           ,_1: A2($List._op["::"],
+                           A4(makeBullet,
+                           _v0.time,
+                           _v1._0.x,
+                           _v1._0.y,
+                           3),
+                           _v1._1)} : _U.cmp(_v1._0.size,
+                 20) > 0 ? {ctor: "_Tuple2"
+                           ,_0: _U.replace([["size"
+                                            ,_v1._0.size - 15]],
+                           _v1._0)
+                           ,_1: A2($List._op["::"],
+                           A4(makeBullet,
+                           _v0.time,
+                           _v1._0.x,
+                           _v1._0.y,
+                           1),
+                           _v1._1)} : {ctor: "_Tuple2"
+                                      ,_0: _v1._0
+                                      ,_1: _v1._1};
               }();}
          _U.badCase($moduleName,
-         "between lines 124 and 126");
+         "between lines 138 and 142");
       }();
+   });
+   var generateEffect = F4(function (x,
+   y,
+   c,
+   size) {
+      return {_: {}
+             ,color: c
+             ,size: $Basics.toFloat(size)
+             ,vx: 0
+             ,vy: 0
+             ,x: x
+             ,y: y};
    });
    var collisionObject = F2(function (i,
    _v6) {
@@ -252,15 +296,40 @@ Elm.ChargeShooting.make = function (_elm) {
             var p = _U.replace([["isLive"
                                 ,_v6.player.isLive && $Basics.not(isPlayerHitted)]],
             _v6.player);
-            var newBullets = A2($List.map,
-            function (b) {
-               return A2($List.any,
-               isHit(b),
-               _v6.enemies) ? _U.replace([["level"
-                                          ,b.level - 1]],
-               b) : b;
-            },
-            _v6.bullets);
+            var $ = A3($List.foldr,
+            F2(function (b,_v8) {
+               return function () {
+                  switch (_v8.ctor)
+                  {case "_Tuple2":
+                     return A2($List.any,
+                       isHit(b),
+                       _v6.enemies) ? {ctor: "_Tuple2"
+                                      ,_0: A2($List._op["::"],
+                                      _U.replace([["level"
+                                                  ,b.level - 1]],
+                                      b),
+                                      _v8._0)
+                                      ,_1: A2($List._op["::"],
+                                      A4(generateEffect,
+                                      b.x,
+                                      b.y,
+                                      b.color,
+                                      b.level * 10),
+                                      _v8._1)} : {ctor: "_Tuple2"
+                                                 ,_0: A2($List._op["::"],
+                                                 b,
+                                                 _v8._0)
+                                                 ,_1: _v8._1};}
+                  _U.badCase($moduleName,
+                  "between lines 105 and 107");
+               }();
+            }),
+            {ctor: "_Tuple2"
+            ,_0: _L.fromArray([])
+            ,_1: _v6.effects},
+            _v6.bullets),
+            newBullets = $._0,
+            newEffects = $._1;
             var newEnemies = A2($List.map,
             function (e) {
                return A2($List.any,
@@ -272,7 +341,8 @@ Elm.ChargeShooting.make = function (_elm) {
             _v6.enemies);
             return _U.replace([["player",p]
                               ,["bullets",newBullets]
-                              ,["enemies",newEnemies]],
+                              ,["enemies",newEnemies]
+                              ,["effects",newEffects]],
             _v6);
          }();
       }();
@@ -284,69 +354,92 @@ Elm.ChargeShooting.make = function (_elm) {
       p);
    });
    var update = F2(function (i,
-   _v8) {
+   _v12) {
       return function () {
          return function () {
+            var newEffects = A2($List.map,
+            function (e) {
+               return _U.replace([["size"
+                                  ,e.size - 1]],
+               e);
+            },
+            A2($List.filter,
+            function (e) {
+               return _U.cmp(e.size,0) > 0;
+            },
+            _v12.effects));
             var newEnemies = A2($List.filter,
             function (e) {
                return _U.cmp(e.hp,0) > 0;
             },
-            _v8.enemies);
-            var newScore = _v8.score + ($List.length(_v8.enemies) - $List.length(newEnemies));
+            _v12.enemies);
+            var newScore = _v12.score + ($List.length(_v12.enemies) - $List.length(newEnemies));
             var newBullets = A2($List.filter,
             function (b) {
                return _U.cmp(b.level,0) > 0;
             },
-            _v8.bullets);
+            _v12.bullets);
             var newPlayer = A2(chargePlayer,
             i,
-            _v8.player);
+            _v12.player);
             return _U.replace([["player"
                                ,newPlayer]
                               ,["bullets",newBullets]
                               ,["enemies",newEnemies]
-                              ,["frame",_v8.frame + 1]
+                              ,["effects",newEffects]
+                              ,["frame",_v12.frame + 1]
                               ,["score",newScore]
                               ,["remainTime"
-                               ,_v8.remainTime - (_U.eq(A2($Basics._op["%"],
-                               _v8.frame,
+                               ,_v12.remainTime - (_U.eq(A2($Basics._op["%"],
+                               _v12.frame,
                                30),
                                0) ? 1 : 0)]
                               ,["isBomb"
                                ,_U.cmp(0,
-                               $List.length(_v8.enemies) - $List.length(newEnemies)) < 0]],
-            _v8);
+                               $List.length(_v12.enemies) - $List.length(newEnemies)) < 0]],
+            _v12);
          }();
       }();
    });
-   var isGameOver = function (_v10) {
+   var isGameOver = function (_v14) {
       return function () {
          return _U.replace([["isGameOver"
-                            ,$Basics.not(_v10.player.isLive) || _U.cmp(_v10.remainTime,
+                            ,$Basics.not(_v14.player.isLive) || _U.cmp(_v14.remainTime,
                             0) < 1]],
-         _v10);
+         _v14);
       }();
    };
-   var Game = F9(function (a,
-   b,
-   c,
-   d,
-   e,
-   f,
-   g,
-   h,
-   i) {
-      return {_: {}
-             ,bgm: i
-             ,bullets: b
-             ,enemies: c
-             ,frame: d
-             ,isBomb: h
-             ,isGameOver: g
-             ,player: a
-             ,remainTime: f
-             ,score: e};
-   });
+   var Game = function (a) {
+      return function (b) {
+         return function (c) {
+            return function (d) {
+               return function (e) {
+                  return function (f) {
+                     return function (g) {
+                        return function (h) {
+                           return function (i) {
+                              return function (j) {
+                                 return {_: {}
+                                        ,bgm: j
+                                        ,bullets: b
+                                        ,effects: d
+                                        ,enemies: c
+                                        ,frame: e
+                                        ,isBomb: i
+                                        ,isGameOver: h
+                                        ,player: a
+                                        ,remainTime: g
+                                        ,score: f};
+                              };
+                           };
+                        };
+                     };
+                  };
+               };
+            };
+         };
+      };
+   };
    var Object = F6(function (a,
    b,
    c,
@@ -385,27 +478,6 @@ Elm.ChargeShooting.make = function (_elm) {
          A2($List.map,move,es));
       }();
    };
-   var moveBullets = function (bs) {
-      return function () {
-         var moveBullet = function (b) {
-            return function () {
-               var isReflect = _U.cmp(b.y + b.vy,
-               0) < 0 || _U.cmp(height,
-               b.y + b.vy) < 0;
-               var nextVY = isReflect ? 0 - b.vy : b.vy;
-               var nextLevel = isReflect ? b.level - 1 : b.level;
-               return _U.replace([["y"
-                                  ,b.y + nextVY]
-                                 ,["vy",nextVY]
-                                 ,["level",nextLevel]],
-               b);
-            }();
-         };
-         return A2($List.map,
-         moveBullet,
-         bs);
-      }();
-   };
    var width = 320;
    var initialPlayer = {_: {}
                        ,isLive: true
@@ -417,6 +489,7 @@ Elm.ChargeShooting.make = function (_elm) {
    var initialGame = {_: {}
                      ,bgm: "BGM"
                      ,bullets: _L.fromArray([])
+                     ,effects: _L.fromArray([])
                      ,enemies: _L.fromArray([])
                      ,frame: 0
                      ,isBomb: false
@@ -425,24 +498,24 @@ Elm.ChargeShooting.make = function (_elm) {
                      ,remainTime: limitTime
                      ,score: 0};
    var generateEnemy = F2(function (n,
-   _v12) {
+   _v16) {
       return function () {
          return function () {
-            var getX = F2(function (_v14,
-            _v15) {
+            var getX = F2(function (_v18,
+            _v19) {
                return function () {
-                  switch (_v15.ctor)
+                  switch (_v19.ctor)
                   {case "_Tuple2":
                      return function () {
                           return A2($Random.generate,
                           A2($Random.$float,0,width),
-                          _v15._1);
+                          _v19._1);
                        }();}
                   _U.badCase($moduleName,
-                  "on line 117, column 21 to 61");
+                  "on line 131, column 21 to 61");
                }();
             });
-            var seed = $Random.initialSeed($Basics.round(_v12.time));
+            var seed = $Random.initialSeed($Basics.round(_v16.time));
             var xs = A2($List.map,
             $Basics.fst,
             A3($List.scanl,
@@ -466,29 +539,29 @@ Elm.ChargeShooting.make = function (_elm) {
       }();
    });
    var generateObject = F2(function (i,
-   _v20) {
+   _v24) {
       return function () {
          return function () {
             var newEnemies = _U.eq(A2($Basics._op["%"],
-            _v20.frame,
+            _v24.frame,
             30),
             0) ? A2($List.append,
             A2(generateEnemy,
-            (_v20.frame / 1000 | 0) + 1,
+            (_v24.frame / 1000 | 0) + 1,
             i),
-            _v20.enemies) : _v20.enemies;
+            _v24.enemies) : _v24.enemies;
             var $ = A2(generateBullet,
             i,
             {ctor: "_Tuple2"
-            ,_0: _v20.player
-            ,_1: _v20.bullets}),
+            ,_0: _v24.player
+            ,_1: _v24.bullets}),
             newPlayer = $._0,
             newBullets = $._1;
             return _U.replace([["player"
                                ,newPlayer]
                               ,["bullets",newBullets]
                               ,["enemies",newEnemies]],
-            _v20);
+            _v24);
          }();
       }();
    });
@@ -508,16 +581,56 @@ Elm.ChargeShooting.make = function (_elm) {
          p);
       }();
    });
+   var moveBullets = function (bs) {
+      return function () {
+         var moveBullet = function (b) {
+            return function () {
+               var isReflect = F3(function (limit,
+               x,
+               vx) {
+                  return _U.cmp(x + vx,
+                  0) < 0 || _U.cmp(limit,
+                  x + vx) < 0;
+               });
+               var nextVY = A3(isReflect,
+               height,
+               b.y,
+               b.vy) ? 0 - b.vy : b.vy;
+               var nextVX = A3(isReflect,
+               width,
+               b.x,
+               b.vx) ? 0 - b.vx : b.vx;
+               var nextLevel = A3(isReflect,
+               height,
+               b.y,
+               b.vy) || A3(isReflect,
+               width,
+               b.x,
+               b.vx) ? b.level - 1 : b.level;
+               return _U.replace([["x"
+                                  ,b.x + nextVX]
+                                 ,["vx",nextVX]
+                                 ,["y",b.y + nextVY]
+                                 ,["vy",nextVY]
+                                 ,["level",nextLevel]],
+               b);
+            }();
+         };
+         return A2($List.map,
+         moveBullet,
+         bs);
+      }();
+   };
    var moveObject = F2(function (i,
-   _v22) {
+   _v26) {
       return function () {
          return _U.replace([["player"
-                            ,A2(movePlayer,i,_v22.player)]
+                            ,A2(movePlayer,i,_v26.player)]
                            ,["bullets"
-                            ,moveBullets(_v22.bullets)]
+                            ,moveBullets(_v26.bullets)]
                            ,["enemies"
-                            ,moveEnemies(_v22.enemies)]],
-         _v22);
+                            ,moveEnemies(_v26.enemies)]],
+         _v26);
       }();
    });
    var stepPlayGame = function (i) {
@@ -530,6 +643,22 @@ Elm.ChargeShooting.make = function (_elm) {
       i,
       g);
    });
+   var effectsForm = function (es) {
+      return function () {
+         var toForm = function (_v28) {
+            return function () {
+               return $Graphics$Collage.move({ctor: "_Tuple2"
+                                             ,_0: _v28.x - width / 2
+                                             ,_1: height / 2 - _v28.y})($Graphics$Collage.outlined($Graphics$Collage.solid(_v28.color))(A2($Graphics$Collage.ngon,
+               6,
+               _v28.size)));
+            }();
+         };
+         return $Graphics$Collage.group(A2($List.map,
+         toForm,
+         es));
+      }();
+   };
    var playerForm = function (player) {
       return $Graphics$Collage.move({ctor: "_Tuple2"
                                     ,_0: player.x - width / 2
@@ -537,13 +666,13 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var bulletsForm = function (bs) {
       return function () {
-         var toForm = function (_v24) {
+         var toForm = function (_v30) {
             return function () {
                return $Graphics$Collage.move({ctor: "_Tuple2"
-                                             ,_0: _v24.x - width / 2
-                                             ,_1: height / 2 - _v24.y})($Graphics$Collage.filled($Color.black)(A2($Graphics$Collage.ngon,
+                                             ,_0: _v30.x - width / 2
+                                             ,_1: height / 2 - _v30.y})($Graphics$Collage.filled(_v30.color)(A2($Graphics$Collage.ngon,
                6,
-               $Basics.toFloat(_v24.level * 3))));
+               $Basics.toFloat(_v30.level * 3))));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -553,11 +682,11 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var enemiesForm = function (es) {
       return function () {
-         var toForm = function (_v26) {
+         var toForm = function (_v32) {
             return function () {
                return $Graphics$Collage.move({ctor: "_Tuple2"
-                                             ,_0: _v26.x - width / 2
-                                             ,_1: height / 2 - _v26.y})($Graphics$Collage.filled($Color.blue)($Graphics$Collage.square(_v26.size)));
+                                             ,_0: _v32.x - width / 2
+                                             ,_1: height / 2 - _v32.y})($Graphics$Collage.filled($Color.blue)($Graphics$Collage.square(_v32.size)));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -565,25 +694,26 @@ Elm.ChargeShooting.make = function (_elm) {
          es));
       }();
    };
-   var display = function (_v28) {
+   var display = function (_v34) {
       return function () {
-         return _v28.isGameOver ? A3($Graphics$Element.container,
+         return _v34.isGameOver ? A3($Graphics$Element.container,
          width,
          height,
          $Graphics$Element.middle)($Text.centered($Text.fromString(A2($Basics._op["++"],
          "GameOver\nyour score is ",
-         $Basics.toString(_v28.score))))) : $Graphics$Element.layers(_L.fromArray([A3($Graphics$Collage.collage,
+         $Basics.toString(_v34.score))))) : $Graphics$Element.layers(_L.fromArray([A3($Graphics$Collage.collage,
                                                                                   width,
                                                                                   height,
-                                                                                  _L.fromArray([playerForm(_v28.player)
-                                                                                               ,bulletsForm(_v28.bullets)
-                                                                                               ,enemiesForm(_v28.enemies)]))
+                                                                                  _L.fromArray([effectsForm(_v34.effects)
+                                                                                               ,playerForm(_v34.player)
+                                                                                               ,bulletsForm(_v34.bullets)
+                                                                                               ,enemiesForm(_v34.enemies)]))
                                                                                   ,$Text.plainText(A2($Basics._op["++"],
                                                                                   "score:",
-                                                                                  $Basics.toString(_v28.score)))
+                                                                                  $Basics.toString(_v34.score)))
                                                                                   ,$Text.plainText(A2($Basics._op["++"],
                                                                                   "\ntime:",
-                                                                                  $Basics.toString(_v28.remainTime)))]));
+                                                                                  $Basics.toString(_v34.remainTime)))]));
       }();
    };
    var Input = F3(function (a,
@@ -602,7 +732,7 @@ Elm.ChargeShooting.make = function (_elm) {
    Input,
    $Mouse.position),
    $Mouse.isDown),
-   $Time.every(500)));
+   $Time.every(1)));
    var game = A3($Signal.foldp,
    step,
    initialGame,
@@ -644,6 +774,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,update: update
                                 ,chargePlayer: chargePlayer
                                 ,collisionObject: collisionObject
+                                ,generateEffect: generateEffect
                                 ,generateObject: generateObject
                                 ,generateEnemy: generateEnemy
                                 ,generateBullet: generateBullet
@@ -653,6 +784,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,moveEnemies: moveEnemies
                                 ,moveBullets: moveBullets
                                 ,display: display
+                                ,effectsForm: effectsForm
                                 ,playerForm: playerForm
                                 ,bulletsForm: bulletsForm
                                 ,enemiesForm: enemiesForm
