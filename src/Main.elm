@@ -21,7 +21,7 @@ input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every 1)
 -- Model
 width = 320
 height = 480
-limitTime = 180
+initialLimitTime = 60
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
 type alias Bullet = Object { level:Int, color:Color }
@@ -34,13 +34,21 @@ type alias Game =
   , effects:List Effect
   , frame:Int
   , score:Int
-  , remainTime:Int
+  , pastTime:Int
   , isGameOver:Bool
   , isBomb:Bool
   , bgm:String
+  , limitTime:Int
   }
 
-initialPlayer = { x = width/2, y = height - 20, vx = 0, vy = 0, size = 5, isLive=True }
+initialPlayer =
+  { x = width / 2
+  , y = height - 20
+  , vx = 0
+  , vy = 0
+  , size = 5
+  , isLive=True }
+
 initialGame =
   { player=initialPlayer
   , bullets = []
@@ -48,10 +56,11 @@ initialGame =
   , effects=[]
   , frame=0
   , score=0
-  , remainTime=limitTime
+  , pastTime=0
   , isGameOver=False
   , isBomb=False
   , bgm="BGM"
+  , limitTime=initialLimitTime
   }
 
 --Update
@@ -65,8 +74,8 @@ stepPlayGame : Input -> Game -> Game
 stepPlayGame i = update i << generateObject i << moveObject i << collisionObject i << isGameOver
 
 isGameOver : Game -> Game
-isGameOver ({player, remainTime} as g)=
-  { g | isGameOver <- (not player.isLive) || remainTime <= 0 }
+isGameOver ({player, pastTime, limitTime} as g)=
+  { g | isGameOver <- (not player.isLive) || limitTime <= pastTime }
 
 update : Input -> Game -> Game
 update i ({player, bullets, enemies, effects} as g) =
@@ -86,8 +95,9 @@ update i ({player, bullets, enemies, effects} as g) =
     , effects <- newEffects
     , frame <- g.frame + 1
     , score <- newScore
-    , remainTime <- g.remainTime - (if g.frame % 30 == 0 then 1 else 0)
+    , pastTime <- g.pastTime + (if g.frame % 30 == 0 then 1 else 0)
     , isBomb <- 0 < ((List.length enemies) - (List.length newEnemies))
+    , limitTime <- initialLimitTime + (g.score // 5)
     }
 
 chargePlayer i p =
@@ -212,7 +222,7 @@ display ({player, bullets, enemies, effects} as g) =
         , enemiesForm enemies
         ]
     , plainText ("score:" ++ toString g.score)
-    , plainText ("\ntime:" ++ toString g.remainTime)
+    , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
     ]
 
 effectsForm : List Effect -> Form
