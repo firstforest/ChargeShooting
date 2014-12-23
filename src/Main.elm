@@ -1,3 +1,5 @@
+module ChargeShooting where
+
 import Text (..)
 import Mouse
 import Signal (..)
@@ -19,7 +21,7 @@ input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every 500)
 -- Model
 width = 320
 height = 480
-limitTime = 10
+limitTime = 180
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
 type alias Bullet = Object { level:Int }
@@ -31,7 +33,10 @@ type alias Game =
   , frame:Int
   , score:Int
   , remainTime:Int
-  , isGameOver:Bool}
+  , isGameOver:Bool
+  , isBomb:Bool
+  , bgm:String
+  }
 
 initialPlayer = { x = width/2, y = height - 20, vx = 0, vy = 0, size = 5, isLive=True }
 initialGame =
@@ -41,7 +46,10 @@ initialGame =
   , frame=0
   , score=0
   , remainTime=limitTime
-  , isGameOver=False }
+  , isGameOver=False
+  , isBomb=False
+  , bgm="BGM"
+  }
 
 --Update
 step : Input -> Game -> Game
@@ -72,6 +80,7 @@ update i ({player, bullets, enemies} as g) =
     , frame <- g.frame + 1
     , score <- newScore
     , remainTime <- g.remainTime - (if g.frame % 30 == 0 then 1 else 0)
+    , isBomb <- 0 < ((List.length enemies) - (List.length newEnemies))
     }
 
 chargePlayer i p =
@@ -197,5 +206,11 @@ enemiesForm es =
   in
     group (List.map toForm es)
 
-main = map display <| foldp step initialGame input
---main = asText <~ input
+game = foldp step initialGame input
+
+main = map display game
+
+port jsPlayMusic : Signal String
+port jsPlayMusic = .bgm <~ game
+port jsPlayBombSound : Signal Bool
+port jsPlayBombSound = .isBomb <~ game

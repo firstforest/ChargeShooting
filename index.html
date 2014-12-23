@@ -1,0 +1,101 @@
+<html>
+<head>
+    <title>ChargeShooting</title>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="elm.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <style>
+        h1 {
+            margin: 1rem;
+            font-size: 1.5rem;
+            padding: 1rem;
+            text-align: center;
+            color: #003300;
+        }
+
+        h2 {
+            color: #003300;
+        }
+
+        #main {
+            margin: 0 auto;
+            border: 1px solid #333333;
+        }
+
+        #desc {
+            border: 1px solid #000000;
+            padding: 0.5rem;
+            margin: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+<h1>ChargeShooting</h1>
+
+<div id="main" style="width:320px; height:480px;"></div>
+
+<div id="desc">
+    <p>
+        溜めて放って反射するシューティング。
+    </p>
+
+    <h2>使用ツール</h2>
+        <ul>
+	  <li><a href="http://elm-lang.org/">Elm</a></li>
+	</ul>
+
+    <h2>使用素材</h2>
+
+    <p>
+        以下の素材を使わせて頂いています。
+        楽曲素材の権利は各作者様にあります。(敬称略)<br/>
+        無断利用等はなさらないでください。
+    </p>
+    <ul>
+        <li>BGM: <a href="http://dova-s.jp/bgm/play208.html">Nostalgia</a></li>
+    </ul>
+
+    <p>
+      作った人:<a href="http://twitter.com/firstforest">@firstforest</a><br>
+      <a href="https://github.com/firstforest/ChargeShooting">ソースコード</a>
+    </p>
+</div>
+</body>
+
+<script type="text/javascript">
+    var mainDiv = document.getElementById('main');
+    var chargeShooting = Elm.embed(Elm.ChargeShooting, mainDiv);
+
+    playMusic = function (bgm) {
+        if (!this.bgm) {
+          this.bgm = new Audio();
+          this.bgm.src = "sound/bgm.mp3";
+          this.bgm.loop = true;
+        }
+        switch (bgm) {
+            case "BGM":
+                this.bgm.volume = 1;
+                this.bgm.play();
+                break;
+            case "None":
+                this.bgm.pause();
+                break;
+            default :
+        }
+    }
+
+    function playBombSound(isBomb) {
+        if (isBomb) {
+            var bomb = new Audio();
+            bomb.src = "sound/bomb.wav";
+            bomb.play();
+            console.log("bomb!")
+        }
+    }
+
+    chargeShooting.ports.jsPlayMusic.subscribe(playMusic);
+    chargeShooting.ports.jsPlayBombSound.subscribe(playBombSound);
+
+</script>
+</html>
