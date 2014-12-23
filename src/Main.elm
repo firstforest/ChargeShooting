@@ -6,7 +6,7 @@ import Signal (..)
 import Graphics.Element (Element, layers, container, middle)
 import Graphics.Collage (..)
 import Color (..)
-import Time (Time, fps, every)
+import Time (Time, fps, every, millisecond)
 import List
 import List ((::))
 import Random
@@ -16,7 +16,7 @@ type alias Position = (Int, Int)
 type alias Input = {pos:Position, isDown:Bool, time:Time}
 
 input : Signal Input
-input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every 1)
+input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every millisecond)
 
 -- Model
 width = 320
@@ -130,7 +130,7 @@ generateObject : Input -> Game -> Game
 generateObject i ({player, bullets, enemies, frame} as g) =
   let
     (newPlayer, newBullets) = generateBullet i (player, bullets)
-    newEnemies = if frame % 30 == 0 then List.append (generateEnemy ((frame // 1000)+1) i) enemies else enemies
+    newEnemies = if frame % 10 == 0 then List.append (generateEnemy ((frame // 1000)+1) i) enemies else enemies
   in
     { g | player <- newPlayer, bullets <- newBullets, enemies <- newEnemies }
 
@@ -141,7 +141,7 @@ generateEnemy n {time} =
     getX _ (_, s) = Random.generate (Random.float 0 width) s
     xs = List.map fst (List.scanl getX (width/2, seed) (List.repeat n 0))
   in
-    List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=2 }) xs
+    List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=2 }) (List.tail xs)
 
 generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
