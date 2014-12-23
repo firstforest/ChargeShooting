@@ -26,10 +26,12 @@ type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
 type alias Bullet = Object { level:Int }
 type alias Enemy = Object { hp:Int }
+type alias Effect = Object { color:Color }
 type alias Game =
   { player:Player
   , bullets:List Bullet
   , enemies:List Enemy
+  , effects:List Effect
   , frame:Int
   , score:Int
   , remainTime:Int
@@ -43,6 +45,7 @@ initialGame =
   { player=initialPlayer
   , bullets = []
   , enemies=[]
+  , effects=[]
   , frame=0
   , score=0
   , remainTime=limitTime
@@ -66,17 +69,21 @@ isGameOver ({player, remainTime} as g)=
   { g | isGameOver <- (not player.isLive) || remainTime <= 0 }
 
 update : Input -> Game -> Game
-update i ({player, bullets, enemies} as g) =
+update i ({player, bullets, enemies, effects} as g) =
   let
     newPlayer = chargePlayer i player
     newBullets = List.filter (\b -> b.level > 0) bullets
     newEnemies = List.filter (\e -> e.hp > 0) enemies
+    newEffects =
+      List.map (\e -> { e | size <- e.size - 1 })
+        (List.filter (\e -> e.size > 0) effects)
     newScore = g.score + ((List.length enemies) - (List.length newEnemies))
   in
     { g |
       player <- newPlayer
     , bullets <- newBullets
     , enemies <- newEnemies
+    , effects <- newEffects
     , frame <- g.frame + 1
     , score <- newScore
     , remainTime <- g.remainTime - (if g.frame % 30 == 0 then 1 else 0)
@@ -88,20 +95,27 @@ chargePlayer i p =
 
 -- collision
 collisionObject : Input -> Game -> Game
-collisionObject i ({player, bullets, enemies} as g) =
+collisionObject i ({player, bullets, enemies, effects} as g) =
   let
     isHit o o' = (o.x - o'.x)^2 + (o.y - o'.y)^2 < (o.size + o'.size)^2
     isPlayerHitted = List.any (isHit player) enemies
     p = { player | isLive <- (player.isLive && (not isPlayerHitted)) }
-    newBullets =
-      List.map (\b -> if List.any (isHit b) enemies then {b|level <- b.level - 1} else b) bullets
+    (newBullets, newEffects) =
+      List.foldr (\b (bs, es) ->
+        if List.any (isHit b) enemies
+          then ({ b | level <- b.level - 1} :: bs,  (generateEffect b.x b.y black (b.level * 10)) :: es)
+          else (b::bs, es)
+        ) ([], effects) bullets
     newEnemies =
       List.map (\e -> if List.any (isHit e) bullets then { e | hp <- e.hp - 1} else e) enemies
   in
-    { g | player <- p, bullets <- newBullets, enemies <- newEnemies }
-
+    { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects }
 
 ---Generate
+generateEffect : Float -> Float -> Color -> Int -> Effect
+generateEffect x y c size =
+  { x=x, y=y, vx=0, vy=0, size=toFloat size, color=c }
+
 generateObject : Input -> Game -> Game
 generateObject i ({player, bullets, enemies, frame} as g) =
   let
@@ -174,19 +188,27 @@ moveBullets bs =
 
 --View
 display : Game -> Element
-display ({player, bullets, enemies} as g) =
+display ({player, bullets, enemies, effects} as g) =
   if g.isGameOver
   then container width height middle <| centered <| fromString <| "GameOver\nyour score is " ++ toString g.score
   else
     layers
     [ collage width height
-        [ playerForm player
+        [ effectsForm effects
+        , playerForm player
         , bulletsForm bullets
         , enemiesForm enemies
         ]
     , plainText ("score:" ++ toString g.score)
     , plainText ("\ntime:" ++ toString g.remainTime)
     ]
+
+effectsForm : List Effect -> Form
+effectsForm es =
+  let
+    toForm {x, y, size, color} = ngon 6 size |> (outlined <| solid color) |> move (x - (width/2), (height/2) - y)
+  in
+    group (List.map toForm es)
 
 playerForm : Player -> Form
 playerForm player =
