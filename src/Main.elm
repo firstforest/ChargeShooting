@@ -16,7 +16,7 @@ type alias Position = (Int, Int)
 type alias Input = {pos:Position, isDown:Bool, time:Time}
 
 input : Signal Input
-input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every 500)
+input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every 1)
 
 -- Model
 width = 320
@@ -134,13 +134,19 @@ generateEnemy n {time} =
     List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=1 }) xs
 
 generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
-generateBullet {isDown} (p, bs) =
-  if p.size > 20 && not isDown
-  then ({p | size <- p.size - 15}, (makeBullet p.x p.y 1) :: bs)
-  else (p, bs)
+generateBullet {isDown, time} (p, bs) =
+  if isDown then (p, bs)
+  else
+    if | p.size > 25 -> ({p | size <- p.size - 5}, (makeBullet time p.x p.y 3) :: bs)
+       | p.size > 20 -> ({p | size <- p.size - 15}, (makeBullet time p.x p.y 1) :: bs)
+       | otherwise -> (p, bs)
 
-makeBullet : Float -> Float -> Int -> Bullet
-makeBullet x y l = { x=x, y=y, level=l, vx=0, vy=-5, size=5 }
+makeBullet : Float -> Float -> Float -> Int -> Bullet
+makeBullet time x y l =
+  let
+    vx = if l==1 then 0 else (fst (Random.generate (Random.float -5 5) (Random.initialSeed (round time))))
+  in
+    { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3) }
 
 ---Move
 moveObject :Input -> Game -> Game
@@ -175,14 +181,18 @@ moveBullets bs =
   let
     moveBullet b =
       let
-        isReflect = b.y + b.vy < 0 || height < b.y + b.vy
+        isReflect limit x vx = x + vx < 0 || limit < x + vx
         nextVY =
-          if isReflect
+          if isReflect height b.y b.vy
             then -b.vy
             else b.vy
-        nextLevel = if isReflect then b.level - 1 else b.level
+        nextVX =
+          if isReflect width b.x b.vx
+            then -b.vx
+            else b.vx
+        nextLevel = if (isReflect height b.y b.vy) || (isReflect width b.x b.vx) then b.level - 1 else b.level
       in
-        {b | y <- b.y + nextVY, vy <- nextVY, level <- nextLevel}
+        {b | x <- b.x + nextVX, vx <- nextVX, y <- b.y + nextVY, vy <- nextVY, level <- nextLevel}
   in
     (List.map moveBullet bs)
 
