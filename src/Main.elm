@@ -6,22 +6,26 @@ import Signal (..)
 import Graphics.Element (Element, layers, container, middle)
 import Graphics.Collage (..)
 import Color (..)
-import Time (Time, fps, every, millisecond)
+import Time
+import Time (Time, every, millisecond)
 import List
 import List ((::))
 import Random
+
+-- Global Setting
+fps = 30
+width = 320
+height = 480
+initialLimitTime = 60
 
 -- Input
 type alias Position = (Int, Int)
 type alias Input = {pos:Position, isDown:Bool, time:Time}
 
 input : Signal Input
-input = sampleOn (fps 30) (Input <~ Mouse.position ~ Mouse.isDown ~ every millisecond)
+input = sampleOn (Time.fps fps) (Input <~ Mouse.position ~ Mouse.isDown ~ every millisecond)
 
 -- Model
-width = 320
-height = 480
-initialLimitTime = 60
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
 type alias Bullet = Object { level:Int, color:Color }
@@ -42,16 +46,16 @@ type alias Game =
   }
 
 initialPlayer =
-  { x = width / 2
-  , y = height - 20
-  , vx = 0
-  , vy = 0
-  , size = 5
+  { x=width / 2
+  , y=height - 20
+  , vx=0
+  , vy=0
+  , size=5
   , isLive=True }
 
 initialGame =
   { player=initialPlayer
-  , bullets = []
+  , bullets=[]
   , enemies=[]
   , effects=[]
   , frame=0
@@ -71,7 +75,7 @@ step i g =
     else stepPlayGame i g
 
 stepPlayGame : Input -> Game -> Game
-stepPlayGame i = update i << generateObject i << moveObject i << collisionObject i << isGameOver
+stepPlayGame i = update i << generateObject i << moveObjects i << collisionObject i << isGameOver
 
 isGameOver : Game -> Game
 isGameOver ({player, pastTime, limitTime} as g)=
@@ -86,7 +90,8 @@ update i ({player, bullets, enemies, effects} as g) =
     newEffects =
       List.map (\e -> { e | size <- e.size - 1 })
         (List.filter (\e -> e.size > 0) effects)
-    newScore = g.score + ((List.length enemies) - (List.length newEnemies))
+    killedEnemyNum = (List.length enemies) - (List.length newEnemies)
+    newScore = g.score + killedEnemyNum
   in
     { g |
       player <- newPlayer
@@ -95,8 +100,8 @@ update i ({player, bullets, enemies, effects} as g) =
     , effects <- newEffects
     , frame <- g.frame + 1
     , score <- newScore
-    , pastTime <- g.pastTime + (if g.frame % 30 == 0 then 1 else 0)
-    , isBomb <- 0 < ((List.length enemies) - (List.length newEnemies))
+    , pastTime <- g.pastTime + (if g.frame % fps == 0 then 1 else 0)
+    , isBomb <- 0 < killedEnemyNum
     , limitTime <- initialLimitTime + (g.score // 5)
     }
 
@@ -130,18 +135,26 @@ generateObject : Input -> Game -> Game
 generateObject i ({player, bullets, enemies, frame} as g) =
   let
     (newPlayer, newBullets) = generateBullet i (player, bullets)
-    newEnemies = if frame % 10 == 0 then List.append (generateEnemy ((frame // 1000)+1) i) enemies else enemies
+    newEnemyNum = frame // 1000 + 1
+    newEnemies =
+      if frame % (fps // 3) == 0
+        then List.append (generateEnemy newEnemyNum i) enemies
+        else enemies
   in
     { g | player <- newPlayer, bullets <- newBullets, enemies <- newEnemies }
+
+genRandomFloat : Float -> Float -> Random.Seed -> (Float, Random.Seed)
+genRandomFloat low high s =
+  Random.generate (Random.float low high) s
 
 generateEnemy : Int -> Input -> List Enemy
 generateEnemy n {time} =
   let
     seed = Random.initialSeed (round time)
-    getX _ (_, s) = Random.generate (Random.float 0 width) s
-    xs = List.map fst (List.scanl getX (width/2, seed) (List.repeat n 0))
+    getX _ (_, s) = genRandomFloat 0 width s
+    xs = List.tail <| List.map fst <| List.scanl getX (0, seed) (List.repeat n 0)
   in
-    List.map (\x -> { x= x, y=0, vx=0, vy=3, size=10, hp=2 }) (List.tail xs)
+    List.map (\x -> { x=x, y=0, vx=0, vy=3, size=10, hp=2 }) xs
 
 generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
@@ -154,19 +167,23 @@ generateBullet {isDown, time} (p, bs) =
 makeBullet : Float -> Float -> Float -> Int -> Bullet
 makeBullet time x y l =
   let
-    f l h = (fst (Random.generate (Random.float l h) (Random.initialSeed (round time))))
+    f l h = fst <| genRandomFloat l h (Random.initialSeed (round time))
     vx = if l==1 then 0 else f -5 5
     c = if l==1 then black else hsla (degrees (f 0 360)) 0.9 0.6 0.7
   in
     { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3), color=c }
 
 ---Move
-moveObject :Input -> Game -> Game
-moveObject i ({player, bullets, enemies} as g) =
+moveObjects : Input -> Game -> Game
+moveObjects i ({player, bullets, enemies} as g) =
   { g | player <- movePlayer i player
   , bullets <- moveBullets bullets
   , enemies <- moveEnemies enemies
   }
+
+moveObject : Object a -> Object a
+moveObject o =
+  { o | x <- o.x + o.vx, y <- o.y + o.vy }
 
 movePlayer : Input -> Player -> Player
 movePlayer i p =
@@ -180,13 +197,16 @@ movePlayer i p =
   in
     { p | x <- nx  , y <- ny }
 
+inRange : number -> number -> Bool
+inRange limit x = 0 <= x && x <= limit
+
 moveEnemies : List Enemy -> List Enemy
 moveEnemies es =
   let
-    move e = { e | x <- e.x + e.vx, vx <- (cos <| (pi * (e.y * 2 /height))), y <- e.y + e.vy }
-    inArea e = {--0 <= e.x && e.x <= width &&--} 0 <= e.y && e.y <= height
+    updateVY e = { e | vx <- (cos <| (pi * (e.y * 2 /height))) }
+    move = updateVY << moveObject
   in
-    List.filter inArea (List.map move es)
+    List.filter (\e -> inRange height e.y) (List.map move es)
 
 moveBullets : List Bullet -> List Bullet
 moveBullets bs =
@@ -194,17 +214,14 @@ moveBullets bs =
     moveBullet b =
       let
         isReflect limit x vx = x + vx < 0 || limit < x + vx
-        nextVY =
-          if isReflect height b.y b.vy
-            then -b.vy
-            else b.vy
-        nextVX =
-          if isReflect width b.x b.vx
-            then -b.vx
-            else b.vx
-        nextLevel = if (isReflect height b.y b.vy) || (isReflect width b.x b.vx) then b.level - 1 else b.level
+        isReflectY = isReflect height b.y b.vy
+        isReflectX = isReflect width b.x b.vx
+        nextVY = if isReflectY then -b.vy else b.vy
+        nextVX = if isReflectX then -b.vx else b.vx
+        nextLevel = b.level - (if isReflectY || isReflectX then 1 else 0)
+        b' = {b | vx <- nextVX, vy <- nextVY, level <- nextLevel}
       in
-        {b | x <- b.x + nextVX, vx <- nextVX, y <- b.y + nextVY, vy <- nextVY, level <- nextLevel}
+        moveObject b'
   in
     (List.map moveBullet bs)
 
@@ -225,33 +242,38 @@ display ({player, bullets, enemies, effects} as g) =
     , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
     ]
 
+moveForm : Float -> Float -> Form -> Form
+moveForm x y f = move (x - (width/2), (height/2) - y) f
+
 effectsForm : List Effect -> Form
 effectsForm es =
   let
-    toForm {x, y, size, color} = ngon 6 size |> (outlined <| solid color) |> move (x - (width/2), (height/2) - y)
+    toForm {x, y, size, color} = ngon 6 size |> outlined (solid color) |> moveForm x y
   in
     group (List.map toForm es)
 
 playerForm : Player -> Form
 playerForm player =
-  circle player.size |> filled black |> move (player.x - (width/2), (height/2) - player.y)
+  circle player.size |> filled black |> moveForm player.x player.y
 
 bulletsForm : List Bullet -> Form
 bulletsForm bs =
   let
-    toForm {x, y, level, color} = ngon 6 (toFloat (level * 3)) |> filled color |> move (x - (width/2), (height/2) - y)
+    toForm {x, y, level, color} = ngon 6 (toFloat (level * 3)) |> filled color |> moveForm x y
   in
     group (List.map toForm bs)
 
 enemiesForm : List Enemy -> Form
 enemiesForm es =
   let
-    toForm {x, y, size} = square size |> filled blue |> move (x - (width/2), (height/2) - y)
+    toForm {x, y, size} = square size |> filled blue |> moveForm x y
   in
     group (List.map toForm es)
 
+game : Signal Game
 game = foldp step initialGame input
 
+main : Signal Element
 main = map display game
 
 port jsPlayMusic : Signal String
