@@ -58,7 +58,7 @@ initialGame =
 step : Input -> Game -> Game
 step i g =
   if g.isGameOver
-    then g
+    then if i.isDown then initialGame else g
     else stepPlayGame i g
 
 stepPlayGame : Input -> Game -> Game
