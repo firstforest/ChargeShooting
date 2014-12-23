@@ -639,7 +639,7 @@ Elm.ChargeShooting.make = function (_elm) {
       };
    };
    var step = F2(function (i,g) {
-      return g.isGameOver ? g : A2(stepPlayGame,
+      return g.isGameOver ? i.isDown ? initialGame : g : A2(stepPlayGame,
       i,
       g);
    });
