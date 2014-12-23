@@ -24,7 +24,7 @@ height = 480
 limitTime = 180
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
-type alias Bullet = Object { level:Int }
+type alias Bullet = Object { level:Int, color:Color }
 type alias Enemy = Object { hp:Int }
 type alias Effect = Object { color:Color }
 type alias Game =
@@ -103,7 +103,7 @@ collisionObject i ({player, bullets, enemies, effects} as g) =
     (newBullets, newEffects) =
       List.foldr (\b (bs, es) ->
         if List.any (isHit b) enemies
-          then ({ b | level <- b.level - 1} :: bs,  (generateEffect b.x b.y black (b.level * 10)) :: es)
+          then ({ b | level <- b.level - 1} :: bs,  (generateEffect b.x b.y b.color (b.level * 10)) :: es)
           else (b::bs, es)
         ) ([], effects) bullets
     newEnemies =
@@ -144,9 +144,11 @@ generateBullet {isDown, time} (p, bs) =
 makeBullet : Float -> Float -> Float -> Int -> Bullet
 makeBullet time x y l =
   let
-    vx = if l==1 then 0 else (fst (Random.generate (Random.float -5 5) (Random.initialSeed (round time))))
+    f l h = (fst (Random.generate (Random.float l h) (Random.initialSeed (round time))))
+    vx = if l==1 then 0 else f -5 5
+    c = if l==1 then black else hsla (degrees (f 0 360)) 0.9 0.6 0.7
   in
-    { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3) }
+    { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3), color=c }
 
 ---Move
 moveObject :Input -> Game -> Game
@@ -227,7 +229,7 @@ playerForm player =
 bulletsForm : List Bullet -> Form
 bulletsForm bs =
   let
-    toForm {x, y, level} = ngon 6 (toFloat (level * 3)) |> filled black |> move (x - (width/2), (height/2) - y)
+    toForm {x, y, level, color} = ngon 6 (toFloat (level * 3)) |> filled color |> move (x - (width/2), (height/2) - y)
   in
     group (List.map toForm bs)
 
