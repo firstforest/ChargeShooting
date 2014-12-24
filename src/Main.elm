@@ -3,7 +3,7 @@ module ChargeShooting where
 import Text (..)
 import Mouse
 import Signal (..)
-import Graphics.Element (Element, layers, container, middle)
+import Graphics.Element (Element, layers, container, middle, image)
 import Graphics.Collage (..)
 import Color (..)
 import Time
@@ -232,7 +232,8 @@ display ({player, bullets, enemies, effects} as g) =
   then container width height middle <| centered <| fromString <| "GameOver\nyour score is " ++ toString g.score
   else
     layers
-    [ collage width height
+    [ image width height "../img/background.jpg"
+    , collage width height
         [ effectsForm effects
         , playerForm player
         , bulletsForm bullets
