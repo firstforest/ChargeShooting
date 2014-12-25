@@ -11,6 +11,8 @@ import Time (Time, every, millisecond)
 import List
 import List ((::))
 import Random
+import Keyboard
+import Char
 
 -- Global Setting
 fps = 30
@@ -20,10 +22,11 @@ initialLimitTime = 60
 
 -- Input
 type alias Position = (Int, Int)
-type alias Input = {pos:Position, isDown:Bool, time:Time}
+type alias Input = {pos:Position, isDown:Bool, reset:Bool, time:Time}
 
 input : Signal Input
-input = sampleOn (Time.fps fps) (Input <~ Mouse.position ~ Mouse.isDown ~ every millisecond)
+input = sampleOn (Time.fps fps) <|
+  Input <~ Mouse.position ~ Mouse.isDown ~ Keyboard.isDown (Char.toCode 'r') ~ every millisecond
 
 -- Model
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
@@ -71,7 +74,7 @@ initialGame =
 step : Input -> Game -> Game
 step i g =
   if g.isGameOver
-    then if i.isDown then initialGame else g
+    then if i.reset then initialGame else g
     else stepPlayGame i g
 
 stepPlayGame : Input -> Game -> Game
@@ -229,7 +232,8 @@ moveBullets bs =
 display : Game -> Element
 display ({player, bullets, enemies, effects} as g) =
   if g.isGameOver
-  then container width height middle <| centered <| fromString <| "GameOver\nyour score is " ++ toString g.score
+  then container width height middle <| centered <| fromString <|
+    "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
   else
     layers
     [ image width height "../img/background.jpg"
