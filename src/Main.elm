@@ -48,6 +48,7 @@ type alias Game =
   , isBomb:Bool
   , bgm:String
   , limitTime:Int
+  , isGet:Bool
   }
 
 initialPlayer =
@@ -71,6 +72,7 @@ initialGame =
   , isBomb=False
   , bgm="BGM"
   , limitTime=initialLimitTime
+  , isGet=False
   }
 
 --Update
@@ -140,7 +142,7 @@ collisionObject i ({player, bullets, enemies, effects, coins, score} as g) =
     newScore = score + (List.length coins - List.length newCoins)
   in
     { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects
-    , coins <- newCoins, score <- newScore }
+    , coins <- newCoins, score <- newScore, isGet <- newScore > score }
 
 ---Generate
 generateEffect : Float -> Float -> Color -> Int -> Effect
@@ -309,3 +311,5 @@ port jsPlayMusic : Signal String
 port jsPlayMusic = .bgm <~ game
 port jsPlayBombSound : Signal Bool
 port jsPlayBombSound = .isBomb <~ game
+port jsPlayGetSound : Signal Bool
+port jsPlayGetSound = .isGet <~ game

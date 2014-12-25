@@ -99,8 +99,17 @@
         }
     }
 
+    function playGetSound(isGet) {
+      if (isGet) {
+        var getSE = new Audio();
+        getSE.src = "sound/get.wav";
+        getSE.play();
+      }
+    }
+
     chargeShooting.ports.jsPlayMusic.subscribe(playMusic);
     chargeShooting.ports.jsPlayBombSound.subscribe(playBombSound);
+    chargeShooting.ports.jsPlayGetSound.subscribe(playGetSound);
 
 </script>
 </html>
