@@ -313,7 +313,7 @@ enemiesForm es =
 coinsForm : List Coin -> Form
 coinsForm cs =
   let
-    toForm {x, y, size} = circle size |> filled yellow |> moveForm x y
+    toForm {x, y, size} = circle size |> filled (rgb 255 210 90) |> moveForm x y
   in
     group (List.map toForm cs)
 
