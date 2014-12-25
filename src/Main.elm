@@ -94,7 +94,7 @@ update i ({player, bullets, enemies, coins, effects} as g) =
   let
     newPlayer = chargePlayer i player
     newBullets = List.filter (\b -> b.level > 0) bullets
-    (newEnemies, newCoins) =
+    (newEnemies, generatedCoins) =
       let
         f e (es, cs) =
           if e.hp > 0
@@ -102,6 +102,21 @@ update i ({player, bullets, enemies, coins, effects} as g) =
             else (es, generateCoin e.x e.y :: cs)
       in
         List.foldl f ([], coins) enemies
+    newCoins =
+      let
+        ratio = 60 - (player.size - 60)
+        canDraw = player.size > 40
+        vx' c =
+          if canDraw
+            then (player.x - c.x)/ratio
+            else 0
+        vy' c =
+          if canDraw
+            then (player.y - c.y)/ratio
+            else 0
+        f c = { c | vx <- vx' c, vy <- vy' c }
+      in
+        List.map f generatedCoins
     newEffects =
       List.map (\e -> { e | size <- e.size - 1 })
         (List.filter (\e -> e.size > 0) effects)
@@ -196,10 +211,11 @@ makeBullet time x y l =
 
 ---Move
 moveObjects : Input -> Game -> Game
-moveObjects i ({player, bullets, enemies} as g) =
+moveObjects i ({player, bullets, enemies, coins} as g) =
   { g | player <- movePlayer i player
   , bullets <- moveBullets bullets
   , enemies <- moveEnemies enemies
+  , coins <- List.map moveObject coins
   }
 
 moveObject : Object a -> Object a
