@@ -34,11 +34,13 @@ type alias Player = Object { isLive:Bool }
 type alias Bullet = Object { level:Int, color:Color }
 type alias Enemy = Object { hp:Int }
 type alias Effect = Object { color:Color }
+type alias Coin = Object {}
 type alias Game =
   { player:Player
   , bullets:List Bullet
   , enemies:List Enemy
   , effects:List Effect
+  , coins:List Coin
   , frame:Int
   , score:Int
   , pastTime:Int
@@ -61,6 +63,7 @@ initialGame =
   , bullets=[]
   , enemies=[]
   , effects=[]
+  , coins=[]
   , frame=0
   , score=0
   , pastTime=0
@@ -85,24 +88,30 @@ isGameOver ({player, pastTime, limitTime} as g)=
   { g | isGameOver <- (not player.isLive) || limitTime <= pastTime }
 
 update : Input -> Game -> Game
-update i ({player, bullets, enemies, effects} as g) =
+update i ({player, bullets, enemies, coins, effects} as g) =
   let
     newPlayer = chargePlayer i player
     newBullets = List.filter (\b -> b.level > 0) bullets
-    newEnemies = List.filter (\e -> e.hp > 0) enemies
+    (newEnemies, newCoins) =
+      let
+        f e (es, cs) =
+          if e.hp > 0
+            then (e::es, cs)
+            else (es, generateCoin e.x e.y :: cs)
+      in
+        List.foldl f ([], coins) enemies
     newEffects =
       List.map (\e -> { e | size <- e.size - 1 })
         (List.filter (\e -> e.size > 0) effects)
     killedEnemyNum = (List.length enemies) - (List.length newEnemies)
-    newScore = g.score + killedEnemyNum
   in
     { g |
       player <- newPlayer
     , bullets <- newBullets
     , enemies <- newEnemies
     , effects <- newEffects
+    , coins <- newCoins
     , frame <- g.frame + 1
-    , score <- newScore
     , pastTime <- g.pastTime + (if g.frame % fps == 0 then 1 else 0)
     , isBomb <- 0 < killedEnemyNum
     , limitTime <- initialLimitTime + (g.score // 5)
@@ -113,7 +122,7 @@ chargePlayer i p =
 
 -- collision
 collisionObject : Input -> Game -> Game
-collisionObject i ({player, bullets, enemies, effects} as g) =
+collisionObject i ({player, bullets, enemies, effects, coins, score} as g) =
   let
     isHit o o' = (o.x - o'.x)^2 + (o.y - o'.y)^2 < (o.size + o'.size)^2
     isPlayerHitted = List.any (isHit player) enemies
@@ -126,8 +135,12 @@ collisionObject i ({player, bullets, enemies, effects} as g) =
         ) ([], effects) bullets
     newEnemies =
       List.map (\e -> if List.any (isHit e) bullets then { e | hp <- e.hp - 1} else e) enemies
+    newCoins =
+      List.filter (not << isHit player) coins
+    newScore = score + (List.length coins - List.length newCoins)
   in
-    { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects }
+    { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects
+    , coins <- newCoins, score <- newScore }
 
 ---Generate
 generateEffect : Float -> Float -> Color -> Int -> Effect
@@ -158,6 +171,9 @@ generateEnemy n {time} =
     xs = List.tail <| List.map fst <| List.scanl getX (0, seed) (List.repeat n 0)
   in
     List.map (\x -> { x=x, y=0, vx=0, vy=3, size=10, hp=2 }) xs
+
+generateCoin : Float -> Float -> Coin
+generateCoin x y = { x=x, y=y, vx=0, vy=0, size=5 }
 
 generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
@@ -230,7 +246,7 @@ moveBullets bs =
 
 --View
 display : Game -> Element
-display ({player, bullets, enemies, effects} as g) =
+display ({player, bullets, enemies, effects, coins} as g) =
   if g.isGameOver
   then container width height middle <| centered <| fromString <|
     "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
@@ -242,6 +258,7 @@ display ({player, bullets, enemies, effects} as g) =
         , playerForm player
         , bulletsForm bullets
         , enemiesForm enemies
+        , coinsForm coins
         ]
     , plainText ("score:" ++ toString g.score)
     , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
@@ -274,6 +291,13 @@ enemiesForm es =
     toForm {x, y, size} = square size |> filled blue |> moveForm x y
   in
     group (List.map toForm es)
+
+coinsForm : List Coin -> Form
+coinsForm cs =
+  let
+    toForm {x, y, size} = circle size |> filled yellow |> moveForm x y
+  in
+    group (List.map toForm cs)
 
 game : Signal Game
 game = foldp step initialGame input
