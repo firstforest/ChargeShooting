@@ -79,8 +79,11 @@ initialGame =
 step : Input -> Game -> Game
 step i g =
   if g.isGameOver
-    then if i.reset then initialGame else g
+    then if i.reset then initialGame else soundReset g
     else stepPlayGame i g
+
+soundReset : Game -> Game
+soundReset g = { g | isBomb <- False, isGet <- False }
 
 stepPlayGame : Input -> Game -> Game
 stepPlayGame i = update i << generateObject i << moveObjects i << collisionObject i << isGameOver
