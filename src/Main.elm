@@ -18,7 +18,6 @@ import Char
 fps = 30
 width = 320
 height = 480
-initialLimitTime = 60
 gaugeMax = 500
 
 -- Input
@@ -44,11 +43,9 @@ type alias Game =
   , coins:List Coin
   , frame:Int
   , score:Int
-  , pastTime:Int
   , isGameOver:Bool
   , isBomb:Bool
   , bgm:String
-  , limitTime:Int
   , isGet:Bool
   , comboGauge:Int
   }
@@ -69,11 +66,9 @@ initialGame =
   , coins=[]
   , frame=0
   , score=0
-  , pastTime=0
   , isGameOver=False
   , isBomb=False
   , bgm="BGM"
-  , limitTime=initialLimitTime
   , isGet=False
   , comboGauge=0
   }
@@ -92,8 +87,8 @@ stepPlayGame : Input -> Game -> Game
 stepPlayGame i = update i << generateObject i << moveObjects i << collisionObject i << isGameOver
 
 isGameOver : Game -> Game
-isGameOver ({player, pastTime, limitTime} as g)=
-  { g | isGameOver <- (not player.isLive) || limitTime <= pastTime }
+isGameOver ({player} as g)=
+  { g | isGameOver <- (not player.isLive) }
 
 update : Input -> Game -> Game
 update i ({player, bullets, enemies, coins, effects, comboGauge} as g) =
@@ -140,9 +135,7 @@ update i ({player, bullets, enemies, coins, effects, comboGauge} as g) =
     , effects <- newEffects
     , coins <- newCoins
     , frame <- g.frame + 1
-    , pastTime <- g.pastTime + (if g.frame % fps == 0 then 1 else 0)
     , isBomb <- 0 < killedEnemyNum
-    , limitTime <- initialLimitTime + (g.score // 5)
     , comboGauge <- newComboGauge
     }
 
@@ -302,7 +295,6 @@ display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
         , gaugeForm comboGauge
         ]
     , plainText ("score:" ++ toString g.score)
-    , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
     ]
 
 background : Int -> Element
@@ -318,10 +310,10 @@ background gauge =
     a3 = if 100 + s2 < g && g <= gaugeMax then (g - 100 - s2) / s3 else 0
   in
     layers
-    [ image width height "../img/base.png"
-    , image width height "../img/b1.png" |> opacity a1
-    , image width height "../img/b2.png" |> opacity a2
-    , image width height "../img/b3.png" |> opacity a3
+    [ image width height "./img/base.png"
+    , image width height "./img/b1.png" |> opacity a1
+    , image width height "./img/b2.png" |> opacity a2
+    , image width height "./img/b3.png" |> opacity a3
     ]
 
 moveForm : Float -> Float -> Form -> Form
