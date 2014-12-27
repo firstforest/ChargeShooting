@@ -293,7 +293,7 @@ moveBullets es bs =
             d = distance e |> sqrt
             vx = (e.x - b.x) / d * 5
             vy = (e.y - b.y) / d * 5
-            b' = { b | vx <- vx, vy <- vy }
+            b' = if d < 100 then { b | vx <- vx, vy <- vy } else b
           in
             moveObject b'
   in
