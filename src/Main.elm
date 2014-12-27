@@ -55,7 +55,7 @@ initialPlayer =
   , y=height - 20
   , vx=0
   , vy=0
-  , size=5
+  , size=2
   , isLive=True }
 
 initialGame =
@@ -202,7 +202,7 @@ generateEnemy n {time} =
     getX _ (_, s) = genRandomFloat 0 width s
     xs = List.tail <| List.map fst <| List.scanl getX (0, seed) (List.repeat n 0)
   in
-    List.map (\x -> { x=x, y=0, vx=0, vy=3, size=10, hp=2 }) xs
+    List.map (\x -> { x=x, y=0, vx=0, vy=3, size=5, hp=2 }) xs
 
 generateCoin : Float -> Float -> Coin
 generateCoin x y = { x=x, y=y, vx=0, vy=0, size=5 }
@@ -211,8 +211,8 @@ generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
   if isDown then (p, bs)
   else
-    if | p.size > 25 -> ({p | size <- p.size - 5}, (makeBullet time p.x p.y 3) :: bs)
-       | p.size > 20 -> ({p | size <- p.size - 15}, (makeBullet time p.x p.y 1) :: bs)
+    if | p.size > 22 -> ({p | size <- p.size - 5}, (makeBullet time p.x p.y 3) :: bs)
+       | p.size > 17 -> ({p | size <- p.size - 15}, (makeBullet time p.x p.y 1) :: bs)
        | otherwise -> (p, bs)
 
 makeBullet : Float -> Float -> Float -> Int -> Bullet
@@ -335,7 +335,7 @@ effectsForm es =
 
 playerForm : Player -> Form
 playerForm player =
-  circle player.size |> filled black |> moveForm player.x player.y
+  circle (player.size + 3) |> filled black |> moveForm player.x player.y
 
 bulletsForm : List Bullet -> Form
 bulletsForm bs =
@@ -347,7 +347,7 @@ bulletsForm bs =
 enemiesForm : List Enemy -> Form
 enemiesForm es =
   let
-    toForm {x, y, size} = square size |> filled blue |> moveForm x y
+    toForm {x, y, size} = square (size * 2) |> filled blue |> moveForm x y
   in
     group (List.map toForm es)
 
