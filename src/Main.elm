@@ -3,7 +3,7 @@ module ChargeShooting where
 import Text (..)
 import Mouse
 import Signal (..)
-import Graphics.Element (Element, layers, container, middle, image)
+import Graphics.Element (Element, layers, container, middle, image, opacity)
 import Graphics.Collage (..)
 import Color (..)
 import Time
@@ -19,6 +19,7 @@ fps = 30
 width = 320
 height = 480
 initialLimitTime = 60
+gaugeMax = 500
 
 -- Input
 type alias Position = (Int, Int)
@@ -166,15 +167,19 @@ collisionObject i ({player, bullets, enemies, effects, coins, score, comboGauge}
     newCoins =
       List.filter (not << isHit player) coins
     gotCoins = List.length coins - List.length newCoins
-    newScore = score + (gotCoins * ((comboGauge // 10) + 1))
+    newScore = score + (gotCoins * (calcMgn comboGauge))
     newComboGauge =
       let
         t = comboGauge + (gotCoins * 10)
       in
-        if 100 < t then 100 else t
+        if gaugeMax < t then gaugeMax else t
   in
     { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects
     , coins <- newCoins, score <- newScore, isGet <- newScore > score, comboGauge <- newComboGauge }
+
+calcMgn : Int -> Int
+calcMgn g =
+  if 100 <= g then 10 else (g // 10) + 1
 
 ---Generate
 generateEffect : Float -> Float -> Color -> Int -> Effect
@@ -287,17 +292,36 @@ display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
     "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
   else
     layers
-    [ image width height "../img/background.jpg"
+    [ background comboGauge
     , collage width height
         [ effectsForm effects
         , playerForm player
+        , coinsForm coins
         , bulletsForm bullets
         , enemiesForm enemies
-        , coinsForm coins
         , gaugeForm comboGauge
         ]
     , plainText ("score:" ++ toString g.score)
     , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
+    ]
+
+background : Int -> Element
+background gauge =
+  let
+    g = toFloat gauge
+    range = gaugeMax - 100
+    s1 = range / 3
+    s2 = range / 3
+    s3 = range / 4
+    a1 = if 100 < g && g <= 100 + s1 then (g - 100) / s1 else 0
+    a2 = if 100 + s1 < g && g <= 100 + s2 then (g - 100 - s1) / s2 else 0
+    a3 = if 100 + s2 < g && g <= gaugeMax then (g - 100 - s2) / s3 else 0
+  in
+    layers
+    [ image width height "../img/base.png"
+    , image width height "../img/b1.png" |> opacity a1
+    , image width height "../img/b2.png" |> opacity a2
+    , image width height "../img/b3.png" |> opacity a3
     ]
 
 moveForm : Float -> Float -> Form -> Form
@@ -338,9 +362,9 @@ coinsForm cs =
 gaugeForm : Int -> Form
 gaugeForm gauge =
   let
-    width = toFloat gauge * 2
+    width = if gauge > 100 then 200 else toFloat gauge * 2
     -- 得点倍率
-    mgn = (gauge // 10) + 1
+    mgn = calcMgn gauge
   in
     group [ ("x " ++ toString mgn) |> plainText |> toForm |> moveForm 100 10
           , rect width 12 |> filled yellow |> moveForm (120 + width/2) 10
