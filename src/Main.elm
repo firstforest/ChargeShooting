@@ -281,8 +281,7 @@ moveBullets bs =
 display : Game -> Element
 display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
   if g.isGameOver
-  then container width height middle <| centered <| fromString <|
-    "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
+  then gameOverScene g
   else
     layers
     [ background comboGauge
@@ -295,6 +294,14 @@ display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
         , gaugeForm comboGauge
         ]
     , plainText ("score:" ++ toString g.score)
+    ]
+
+gameOverScene : Game -> Element
+gameOverScene g =
+  layers
+    [ background g.comboGauge
+    , container width height middle <| centered <| fromString <|
+        "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
     ]
 
 background : Int -> Element
