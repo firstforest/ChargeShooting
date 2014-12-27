@@ -218,8 +218,12 @@ generateBullet {isDown, time} (p, bs) =
 makeBullet : Float -> Float -> Float -> Int -> Bullet
 makeBullet time x y l =
   let
+    gen = Random.generate (Random.float 0 1)
+    (a, s) = gen (Random.initialSeed (round time))
+    (b, _) = gen s
+    g = sqrt (-2 * (logBase e a)) * cos (2 * pi * b)
     f l h = fst <| genRandomFloat l h (Random.initialSeed (round time))
-    vx = if l==1 then 0 else f -5 5
+    vx = if l==1 then 0 else g * 3
     c = if l==1 then black else hsla (degrees (f 0 360)) 0.9 0.6 0.7
   in
     { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3), color=c }
