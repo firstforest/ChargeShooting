@@ -49,6 +49,7 @@ type alias Game =
   , bgm:String
   , limitTime:Int
   , isGet:Bool
+  , comboGauge:Int
   }
 
 initialPlayer =
@@ -73,6 +74,7 @@ initialGame =
   , bgm="BGM"
   , limitTime=initialLimitTime
   , isGet=False
+  , comboGauge=0
   }
 
 --Update
@@ -93,7 +95,7 @@ isGameOver ({player, pastTime, limitTime} as g)=
   { g | isGameOver <- (not player.isLive) || limitTime <= pastTime }
 
 update : Input -> Game -> Game
-update i ({player, bullets, enemies, coins, effects} as g) =
+update i ({player, bullets, enemies, coins, effects, comboGauge} as g) =
   let
     newPlayer = chargePlayer i player
     newBullets = List.filter (\b -> b.level > 0) bullets
@@ -124,6 +126,11 @@ update i ({player, bullets, enemies, coins, effects} as g) =
       List.map (\e -> { e | size <- e.size - 1 })
         (List.filter (\e -> e.size > 0) effects)
     killedEnemyNum = (List.length enemies) - (List.length newEnemies)
+    newComboGauge =
+      let
+        t = comboGauge - 1
+      in
+        if t < 0 then 0 else t
   in
     { g |
       player <- newPlayer
@@ -135,6 +142,7 @@ update i ({player, bullets, enemies, coins, effects} as g) =
     , pastTime <- g.pastTime + (if g.frame % fps == 0 then 1 else 0)
     , isBomb <- 0 < killedEnemyNum
     , limitTime <- initialLimitTime + (g.score // 5)
+    , comboGauge <- newComboGauge
     }
 
 chargePlayer i p =
@@ -142,7 +150,7 @@ chargePlayer i p =
 
 -- collision
 collisionObject : Input -> Game -> Game
-collisionObject i ({player, bullets, enemies, effects, coins, score} as g) =
+collisionObject i ({player, bullets, enemies, effects, coins, score, comboGauge} as g) =
   let
     isHit o o' = (o.x - o'.x)^2 + (o.y - o'.y)^2 < (o.size + o'.size)^2
     isPlayerHitted = List.any (isHit player) enemies
@@ -157,10 +165,16 @@ collisionObject i ({player, bullets, enemies, effects, coins, score} as g) =
       List.map (\e -> if List.any (isHit e) bullets then { e | hp <- e.hp - 1} else e) enemies
     newCoins =
       List.filter (not << isHit player) coins
-    newScore = score + (List.length coins - List.length newCoins)
+    gotCoins = List.length coins - List.length newCoins
+    newScore = score + (gotCoins * ((comboGauge // 10) + 1))
+    newComboGauge =
+      let
+        t = comboGauge + (gotCoins * 10)
+      in
+        if 100 < t then 100 else t
   in
     { g | player <- p, bullets <- newBullets, enemies <- newEnemies, effects <- newEffects
-    , coins <- newCoins, score <- newScore, isGet <- newScore > score }
+    , coins <- newCoins, score <- newScore, isGet <- newScore > score, comboGauge <- newComboGauge }
 
 ---Generate
 generateEffect : Float -> Float -> Color -> Int -> Effect
@@ -267,7 +281,7 @@ moveBullets bs =
 
 --View
 display : Game -> Element
-display ({player, bullets, enemies, effects, coins} as g) =
+display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
   if g.isGameOver
   then container width height middle <| centered <| fromString <|
     "GameOver\nyour score is " ++ toString g.score ++ "\n\n\"r\" : restart"
@@ -280,6 +294,7 @@ display ({player, bullets, enemies, effects, coins} as g) =
         , bulletsForm bullets
         , enemiesForm enemies
         , coinsForm coins
+        , gaugeForm comboGauge
         ]
     , plainText ("score:" ++ toString g.score)
     , plainText ("\ntime:" ++ (toString g.pastTime) ++ "/" ++ (toString g.limitTime))
@@ -319,6 +334,17 @@ coinsForm cs =
     toForm {x, y, size} = circle size |> filled (rgb 255 210 90) |> moveForm x y
   in
     group (List.map toForm cs)
+
+gaugeForm : Int -> Form
+gaugeForm gauge =
+  let
+    width = toFloat gauge * 2
+    -- 得点倍率
+    mgn = (gauge // 10) + 1
+  in
+    group [ ("x " ++ toString mgn) |> plainText |> toForm |> moveForm 100 10
+          , rect width 12 |> filled yellow |> moveForm (120 + width/2) 10
+          ]
 
 game : Signal Game
 game = foldp step initialGame input
