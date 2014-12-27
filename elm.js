@@ -332,7 +332,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                       ,_1: _v1._1};
               }();}
          _U.badCase($moduleName,
-         "between lines 197 and 201");
+         "between lines 212 and 216");
       }();
    });
    var generateEffect = F4(function (x,
@@ -347,98 +347,118 @@ Elm.ChargeShooting.make = function (_elm) {
              ,x: x
              ,y: y};
    });
-   var collisionObject = F2(function (i,
-   _v6) {
-      return function () {
-         return function () {
-            var isHit = F2(function (o,
-            o$) {
-               return _U.cmp(Math.pow(o.x - o$.x,
-               2) + Math.pow(o.y - o$.y,2),
-               Math.pow(o.size + o$.size,
-               2)) < 0;
-            });
-            var isPlayerHitted = A2($List.any,
-            isHit(_v6.player),
-            _v6.enemies);
-            var p = _U.replace([["isLive"
-                                ,_v6.player.isLive && $Basics.not(isPlayerHitted)]],
-            _v6.player);
-            var $ = A3($List.foldr,
-            F2(function (b,_v8) {
-               return function () {
-                  switch (_v8.ctor)
-                  {case "_Tuple2":
-                     return A2($List.any,
-                       isHit(b),
-                       _v6.enemies) ? {ctor: "_Tuple2"
-                                      ,_0: A2($List._op["::"],
-                                      _U.replace([["level"
-                                                  ,b.level - 1]],
-                                      b),
-                                      _v8._0)
-                                      ,_1: A2($List._op["::"],
-                                      A4(generateEffect,
-                                      b.x,
-                                      b.y,
-                                      b.color,
-                                      b.level * 10),
-                                      _v8._1)} : {ctor: "_Tuple2"
-                                                 ,_0: A2($List._op["::"],
-                                                 b,
-                                                 _v8._0)
-                                                 ,_1: _v8._1};}
-                  _U.badCase($moduleName,
-                  "between lines 149 and 151");
-               }();
-            }),
-            {ctor: "_Tuple2"
-            ,_0: _L.fromArray([])
-            ,_1: _v6.effects},
-            _v6.bullets),
-            newBullets = $._0,
-            newEffects = $._1;
-            var newEnemies = A2($List.map,
-            function (e) {
-               return A2($List.any,
-               isHit(e),
-               _v6.bullets) ? _U.replace([["hp"
-                                          ,e.hp - 1]],
-               e) : e;
-            },
-            _v6.enemies);
-            var newCoins = A2($List.filter,
-            function ($) {
-               return $Basics.not(isHit(_v6.player)($));
-            },
-            _v6.coins);
-            var newScore = _v6.score + ($List.length(_v6.coins) - $List.length(newCoins));
-            return _U.replace([["player",p]
-                              ,["bullets",newBullets]
-                              ,["enemies",newEnemies]
-                              ,["effects",newEffects]
-                              ,["coins",newCoins]
-                              ,["score",newScore]
-                              ,["isGet"
-                               ,_U.cmp(newScore,
-                               _v6.score) > 0]],
-            _v6);
-         }();
-      }();
-   });
+   var calcMgn = function (g) {
+      return _U.cmp(100,
+      g) < 1 ? 10 : (g / 10 | 0) + 1;
+   };
    var chargePlayer = F2(function (i,
    p) {
       return _U.replace([["size"
                          ,p.size + 1]],
       p);
    });
+   var update = F2(function (i,
+   _v6) {
+      return function () {
+         return function () {
+            var newComboGauge = function () {
+               var t = _v6.comboGauge - 1;
+               return _U.cmp(t,0) < 0 ? 0 : t;
+            }();
+            var newEffects = A2($List.map,
+            function (e) {
+               return _U.replace([["size"
+                                  ,e.size - 1]],
+               e);
+            },
+            A2($List.filter,
+            function (e) {
+               return _U.cmp(e.size,0) > 0;
+            },
+            _v6.effects));
+            var $ = function () {
+               var f = F2(function (e,_v8) {
+                  return function () {
+                     switch (_v8.ctor)
+                     {case "_Tuple2":
+                        return _U.cmp(e.hp,
+                          0) > 0 ? {ctor: "_Tuple2"
+                                   ,_0: A2($List._op["::"],
+                                   e,
+                                   _v8._0)
+                                   ,_1: _v8._1} : {ctor: "_Tuple2"
+                                                  ,_0: _v8._0
+                                                  ,_1: A2($List._op["::"],
+                                                  A2(generateCoin,e.x,e.y),
+                                                  _v8._1)};}
+                     _U.badCase($moduleName,
+                     "between lines 101 and 103");
+                  }();
+               });
+               return A3($List.foldl,
+               f,
+               {ctor: "_Tuple2"
+               ,_0: _L.fromArray([])
+               ,_1: _v6.coins},
+               _v6.enemies);
+            }(),
+            newEnemies = $._0,
+            generatedCoins = $._1;
+            var newCoins = function () {
+               var canDraw = _U.cmp(_v6.player.size,
+               40) > 0;
+               var ratio = 60 - (_v6.player.size - 60);
+               var vx$ = function (c) {
+                  return canDraw ? (_v6.player.x - c.x) / ratio : 0;
+               };
+               var vy$ = function (c) {
+                  return canDraw ? (_v6.player.y - c.y) / ratio : 0;
+               };
+               var f = function (c) {
+                  return _U.replace([["vx"
+                                     ,vx$(c)]
+                                    ,["vy",vy$(c)]],
+                  c);
+               };
+               return A2($List.map,
+               f,
+               generatedCoins);
+            }();
+            var killedEnemyNum = $List.length(_v6.enemies) - $List.length(newEnemies);
+            var newBullets = A2($List.filter,
+            function (b) {
+               return _U.cmp(b.level,0) > 0;
+            },
+            _v6.bullets);
+            var newPlayer = A2(chargePlayer,
+            i,
+            _v6.player);
+            return _U.replace([["player"
+                               ,newPlayer]
+                              ,["bullets",newBullets]
+                              ,["enemies",newEnemies]
+                              ,["effects",newEffects]
+                              ,["coins",newCoins]
+                              ,["frame",_v6.frame + 1]
+                              ,["isBomb"
+                               ,_U.cmp(0,killedEnemyNum) < 0]
+                              ,["comboGauge",newComboGauge]],
+            _v6);
+         }();
+      }();
+   });
    var isGameOver = function (_v12) {
       return function () {
          return _U.replace([["isGameOver"
-                            ,$Basics.not(_v12.player.isLive) || _U.cmp(_v12.limitTime,
-                            _v12.pastTime) < 1]],
+                            ,$Basics.not(_v12.player.isLive)]],
          _v12);
       }();
+   };
+   var soundReset = function (g) {
+      return _U.replace([["isBomb"
+                         ,false]
+                        ,["isGet",false]],
+      g);
    };
    var Game = function (a) {
       return function (b) {
@@ -452,22 +472,19 @@ Elm.ChargeShooting.make = function (_elm) {
                               return function (j) {
                                  return function (k) {
                                     return function (l) {
-                                       return function (m) {
-                                          return {_: {}
-                                                 ,bgm: k
-                                                 ,bullets: b
-                                                 ,coins: e
-                                                 ,effects: d
-                                                 ,enemies: c
-                                                 ,frame: f
-                                                 ,isBomb: j
-                                                 ,isGameOver: i
-                                                 ,isGet: m
-                                                 ,limitTime: l
-                                                 ,pastTime: h
-                                                 ,player: a
-                                                 ,score: g};
-                                       };
+                                       return {_: {}
+                                              ,bgm: j
+                                              ,bullets: b
+                                              ,coins: e
+                                              ,comboGauge: l
+                                              ,effects: d
+                                              ,enemies: c
+                                              ,frame: f
+                                              ,isBomb: i
+                                              ,isGameOver: h
+                                              ,isGet: k
+                                              ,player: a
+                                              ,score: g};
                                     };
                                  };
                               };
@@ -506,7 +523,93 @@ Elm.ChargeShooting.make = function (_elm) {
              ,reset: c
              ,time: d};
    });
-   var initialLimitTime = 60;
+   var gaugeMax = 500;
+   var collisionObject = F2(function (i,
+   _v14) {
+      return function () {
+         return function () {
+            var isHit = F2(function (o,
+            o$) {
+               return _U.cmp(Math.pow(o.x - o$.x,
+               2) + Math.pow(o.y - o$.y,2),
+               Math.pow(o.size + o$.size,
+               2)) < 0;
+            });
+            var isPlayerHitted = A2($List.any,
+            isHit(_v14.player),
+            _v14.enemies);
+            var p = _U.replace([["isLive"
+                                ,_v14.player.isLive && $Basics.not(isPlayerHitted)]],
+            _v14.player);
+            var $ = A3($List.foldr,
+            F2(function (b,_v16) {
+               return function () {
+                  switch (_v16.ctor)
+                  {case "_Tuple2":
+                     return A2($List.any,
+                       isHit(b),
+                       _v14.enemies) ? {ctor: "_Tuple2"
+                                       ,_0: A2($List._op["::"],
+                                       _U.replace([["level"
+                                                   ,b.level - 1]],
+                                       b),
+                                       _v16._0)
+                                       ,_1: A2($List._op["::"],
+                                       A4(generateEffect,
+                                       b.x,
+                                       b.y,
+                                       b.color,
+                                       b.level * 10),
+                                       _v16._1)} : {ctor: "_Tuple2"
+                                                   ,_0: A2($List._op["::"],
+                                                   b,
+                                                   _v16._0)
+                                                   ,_1: _v16._1};}
+                  _U.badCase($moduleName,
+                  "between lines 154 and 156");
+               }();
+            }),
+            {ctor: "_Tuple2"
+            ,_0: _L.fromArray([])
+            ,_1: _v14.effects},
+            _v14.bullets),
+            newBullets = $._0,
+            newEffects = $._1;
+            var newEnemies = A2($List.map,
+            function (e) {
+               return A2($List.any,
+               isHit(e),
+               _v14.bullets) ? _U.replace([["hp"
+                                           ,e.hp - 1]],
+               e) : e;
+            },
+            _v14.enemies);
+            var newCoins = A2($List.filter,
+            function ($) {
+               return $Basics.not(isHit(_v14.player)($));
+            },
+            _v14.coins);
+            var gotCoins = $List.length(_v14.coins) - $List.length(newCoins);
+            var newScore = _v14.score + gotCoins * calcMgn(_v14.comboGauge);
+            var newComboGauge = function () {
+               var t = _v14.comboGauge + gotCoins * 10;
+               return _U.cmp(gaugeMax,
+               t) < 0 ? gaugeMax : t;
+            }();
+            return _U.replace([["player",p]
+                              ,["bullets",newBullets]
+                              ,["enemies",newEnemies]
+                              ,["effects",newEffects]
+                              ,["coins",newCoins]
+                              ,["score",newScore]
+                              ,["isGet"
+                               ,_U.cmp(newScore,
+                               _v14.score) > 0]
+                              ,["comboGauge",newComboGauge]],
+            _v14);
+         }();
+      }();
+   });
    var height = 480;
    var moveEnemies = function (es) {
       return function () {
@@ -539,36 +642,35 @@ Elm.ChargeShooting.make = function (_elm) {
                      ,bgm: "BGM"
                      ,bullets: _L.fromArray([])
                      ,coins: _L.fromArray([])
+                     ,comboGauge: 0
                      ,effects: _L.fromArray([])
                      ,enemies: _L.fromArray([])
                      ,frame: 0
                      ,isBomb: false
                      ,isGameOver: false
                      ,isGet: false
-                     ,limitTime: initialLimitTime
-                     ,pastTime: 0
                      ,player: initialPlayer
                      ,score: 0};
    var generateEnemy = F2(function (n,
-   _v14) {
+   _v20) {
       return function () {
          return function () {
-            var getX = F2(function (_v16,
-            _v17) {
+            var getX = F2(function (_v22,
+            _v23) {
                return function () {
-                  switch (_v17.ctor)
+                  switch (_v23.ctor)
                   {case "_Tuple2":
                      return function () {
                           return A3(genRandomFloat,
                           0,
                           width,
-                          _v17._1);
+                          _v23._1);
                        }();}
                   _U.badCase($moduleName,
-                  "on line 187, column 21 to 45");
+                  "on line 202, column 21 to 45");
                }();
             });
-            var seed = $Random.initialSeed($Basics.round(_v14.time));
+            var seed = $Random.initialSeed($Basics.round(_v20.time));
             var xs = $List.tail($List.map($Basics.fst)(A3($List.scanl,
             getX,
             {ctor: "_Tuple2"
@@ -641,21 +743,66 @@ Elm.ChargeShooting.make = function (_elm) {
       }();
    };
    var moveObjects = F2(function (i,
-   _v22) {
+   _v28) {
       return function () {
          return _U.replace([["player"
-                            ,A2(movePlayer,i,_v22.player)]
+                            ,A2(movePlayer,i,_v28.player)]
                            ,["bullets"
-                            ,moveBullets(_v22.bullets)]
+                            ,moveBullets(_v28.bullets)]
                            ,["enemies"
-                            ,moveEnemies(_v22.enemies)]
+                            ,moveEnemies(_v28.enemies)]
                            ,["coins"
                             ,A2($List.map,
                             moveObject,
-                            _v22.coins)]],
-         _v22);
+                            _v28.coins)]],
+         _v28);
       }();
    });
+   var background = function (gauge) {
+      return function () {
+         var range = gaugeMax - 100;
+         var s1 = range / 3;
+         var s2 = range / 3;
+         var s3 = range / 4;
+         var g = $Basics.toFloat(gauge);
+         var a1 = _U.cmp(100,
+         g) < 0 && _U.cmp(g,
+         100 + s1) < 1 ? (g - 100) / s1 : 0;
+         var a2 = _U.cmp(100 + s1,
+         g) < 0 && _U.cmp(g,
+         100 + s2) < 1 ? (g - 100 - s1) / s2 : 0;
+         var a3 = _U.cmp(100 + s2,
+         g) < 0 && _U.cmp(g,
+         gaugeMax) < 1 ? (g - 100 - s2) / s3 : 0;
+         return $Graphics$Element.layers(_L.fromArray([A3($Graphics$Element.image,
+                                                      width,
+                                                      height,
+                                                      "./img/base.png")
+                                                      ,$Graphics$Element.opacity(a1)(A3($Graphics$Element.image,
+                                                      width,
+                                                      height,
+                                                      "./img/b1.png"))
+                                                      ,$Graphics$Element.opacity(a2)(A3($Graphics$Element.image,
+                                                      width,
+                                                      height,
+                                                      "./img/b2.png"))
+                                                      ,$Graphics$Element.opacity(a3)(A3($Graphics$Element.image,
+                                                      width,
+                                                      height,
+                                                      "./img/b3.png"))]));
+      }();
+   };
+   var gameOverScene = function (g) {
+      return $Graphics$Element.layers(_L.fromArray([background(g.comboGauge)
+                                                   ,A3($Graphics$Element.container,
+                                                   width,
+                                                   height,
+                                                   $Graphics$Element.middle)($Text.centered($Text.fromString(A2($Basics._op["++"],
+                                                   "GameOver\nyour score is ",
+                                                   A2($Basics._op["++"],
+                                                   $Basics.toString(g.score),
+                                                   "\n\n\"r\" : restart")))))]));
+   };
    var moveForm = F3(function (x,
    y,
    f) {
@@ -667,13 +814,13 @@ Elm.ChargeShooting.make = function (_elm) {
    });
    var effectsForm = function (es) {
       return function () {
-         var toForm = function (_v24) {
+         var toForm = function (_v30) {
             return function () {
                return A2(moveForm,
-               _v24.x,
-               _v24.y)($Graphics$Collage.outlined($Graphics$Collage.solid(_v24.color))(A2($Graphics$Collage.ngon,
+               _v30.x,
+               _v30.y)($Graphics$Collage.outlined($Graphics$Collage.solid(_v30.color))(A2($Graphics$Collage.ngon,
                6,
-               _v24.size)));
+               _v30.size)));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -688,13 +835,13 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var bulletsForm = function (bs) {
       return function () {
-         var toForm = function (_v26) {
+         var toForm = function (_v32) {
             return function () {
                return A2(moveForm,
-               _v26.x,
-               _v26.y)($Graphics$Collage.filled(_v26.color)(A2($Graphics$Collage.ngon,
+               _v32.x,
+               _v32.y)($Graphics$Collage.filled(_v32.color)(A2($Graphics$Collage.ngon,
                6,
-               $Basics.toFloat(_v26.level * 3))));
+               $Basics.toFloat(_v32.level * 3))));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -704,11 +851,11 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var enemiesForm = function (es) {
       return function () {
-         var toForm = function (_v28) {
+         var toForm = function (_v34) {
             return function () {
                return A2(moveForm,
-               _v28.x,
-               _v28.y)($Graphics$Collage.filled($Color.blue)($Graphics$Collage.square(_v28.size)));
+               _v34.x,
+               _v34.y)($Graphics$Collage.filled($Color.blue)($Graphics$Collage.square(_v34.size)));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -718,11 +865,14 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var coinsForm = function (cs) {
       return function () {
-         var toForm = function (_v30) {
+         var toForm = function (_v36) {
             return function () {
                return A2(moveForm,
-               _v30.x,
-               _v30.y)($Graphics$Collage.filled($Color.yellow)($Graphics$Collage.circle(_v30.size)));
+               _v36.x,
+               _v36.y)($Graphics$Collage.filled(A3($Color.rgb,
+               255,
+               210,
+               90))($Graphics$Collage.circle(_v36.size)));
             }();
          };
          return $Graphics$Collage.group(A2($List.map,
@@ -730,37 +880,38 @@ Elm.ChargeShooting.make = function (_elm) {
          cs));
       }();
    };
-   var display = function (_v32) {
+   var gaugeForm = function (gauge) {
       return function () {
-         return _v32.isGameOver ? A3($Graphics$Element.container,
-         width,
-         height,
-         $Graphics$Element.middle)($Text.centered($Text.fromString(A2($Basics._op["++"],
-         "GameOver\nyour score is ",
-         A2($Basics._op["++"],
-         $Basics.toString(_v32.score),
-         "\n\n\"r\" : restart"))))) : $Graphics$Element.layers(_L.fromArray([A3($Graphics$Element.image,
-                                                                            width,
-                                                                            height,
-                                                                            "./img/background.jpg")
-                                                                            ,A3($Graphics$Collage.collage,
-                                                                            width,
-                                                                            height,
-                                                                            _L.fromArray([effectsForm(_v32.effects)
-                                                                                         ,playerForm(_v32.player)
-                                                                                         ,bulletsForm(_v32.bullets)
-                                                                                         ,enemiesForm(_v32.enemies)
-                                                                                         ,coinsForm(_v32.coins)]))
-                                                                            ,$Text.plainText(A2($Basics._op["++"],
-                                                                            "score:",
-                                                                            $Basics.toString(_v32.score)))
-                                                                            ,$Text.plainText(A2($Basics._op["++"],
-                                                                            "\ntime:",
-                                                                            A2($Basics._op["++"],
-                                                                            $Basics.toString(_v32.pastTime),
-                                                                            A2($Basics._op["++"],
-                                                                            "/",
-                                                                            $Basics.toString(_v32.limitTime)))))]));
+         var mgn = calcMgn(gauge);
+         var width = _U.cmp(gauge,
+         100) > 0 ? 200 : $Basics.toFloat(gauge) * 2;
+         return $Graphics$Collage.group(_L.fromArray([A2(moveForm,
+                                                     100,
+                                                     10)($Graphics$Collage.toForm($Text.plainText(A2($Basics._op["++"],
+                                                     "x ",
+                                                     $Basics.toString(mgn)))))
+                                                     ,A2(moveForm,
+                                                     120 + width / 2,
+                                                     10)($Graphics$Collage.filled($Color.yellow)(A2($Graphics$Collage.rect,
+                                                     width,
+                                                     12)))]));
+      }();
+   };
+   var display = function (_v38) {
+      return function () {
+         return _v38.isGameOver ? gameOverScene(_v38) : $Graphics$Element.layers(_L.fromArray([background(_v38.comboGauge)
+                                                                                              ,A3($Graphics$Collage.collage,
+                                                                                              width,
+                                                                                              height,
+                                                                                              _L.fromArray([effectsForm(_v38.effects)
+                                                                                                           ,playerForm(_v38.player)
+                                                                                                           ,coinsForm(_v38.coins)
+                                                                                                           ,bulletsForm(_v38.bullets)
+                                                                                                           ,enemiesForm(_v38.enemies)
+                                                                                                           ,gaugeForm(_v38.comboGauge)]))
+                                                                                              ,$Text.plainText(A2($Basics._op["++"],
+                                                                                              "score:",
+                                                                                              $Basics.toString(_v38.score)))]));
       }();
    };
    var fps = 30;
@@ -773,99 +924,6 @@ Elm.ChargeShooting.make = function (_elm) {
    $Mouse.isDown),
    $Keyboard.isDown($Char.toCode(_U.chr("r")))),
    $Time.every($Time.millisecond)));
-   var update = F2(function (i,
-   _v34) {
-      return function () {
-         return function () {
-            var newEffects = A2($List.map,
-            function (e) {
-               return _U.replace([["size"
-                                  ,e.size - 1]],
-               e);
-            },
-            A2($List.filter,
-            function (e) {
-               return _U.cmp(e.size,0) > 0;
-            },
-            _v34.effects));
-            var $ = function () {
-               var f = F2(function (e,
-               _v36) {
-                  return function () {
-                     switch (_v36.ctor)
-                     {case "_Tuple2":
-                        return _U.cmp(e.hp,
-                          0) > 0 ? {ctor: "_Tuple2"
-                                   ,_0: A2($List._op["::"],
-                                   e,
-                                   _v36._0)
-                                   ,_1: _v36._1} : {ctor: "_Tuple2"
-                                                   ,_0: _v36._0
-                                                   ,_1: A2($List._op["::"],
-                                                   A2(generateCoin,e.x,e.y),
-                                                   _v36._1)};}
-                     _U.badCase($moduleName,
-                     "between lines 100 and 102");
-                  }();
-               });
-               return A3($List.foldl,
-               f,
-               {ctor: "_Tuple2"
-               ,_0: _L.fromArray([])
-               ,_1: _v34.coins},
-               _v34.enemies);
-            }(),
-            newEnemies = $._0,
-            generatedCoins = $._1;
-            var newCoins = function () {
-               var canDraw = _U.cmp(_v34.player.size,
-               40) > 0;
-               var ratio = 60 - (_v34.player.size - 60);
-               var vx$ = function (c) {
-                  return canDraw ? (_v34.player.x - c.x) / ratio : 0;
-               };
-               var vy$ = function (c) {
-                  return canDraw ? (_v34.player.y - c.y) / ratio : 0;
-               };
-               var f = function (c) {
-                  return _U.replace([["vx"
-                                     ,vx$(c)]
-                                    ,["vy",vy$(c)]],
-                  c);
-               };
-               return A2($List.map,
-               f,
-               generatedCoins);
-            }();
-            var killedEnemyNum = $List.length(_v34.enemies) - $List.length(newEnemies);
-            var newBullets = A2($List.filter,
-            function (b) {
-               return _U.cmp(b.level,0) > 0;
-            },
-            _v34.bullets);
-            var newPlayer = A2(chargePlayer,
-            i,
-            _v34.player);
-            return _U.replace([["player"
-                               ,newPlayer]
-                              ,["bullets",newBullets]
-                              ,["enemies",newEnemies]
-                              ,["effects",newEffects]
-                              ,["coins",newCoins]
-                              ,["frame",_v34.frame + 1]
-                              ,["pastTime"
-                               ,_v34.pastTime + (_U.eq(A2($Basics._op["%"],
-                               _v34.frame,
-                               fps),
-                               0) ? 1 : 0)]
-                              ,["isBomb"
-                               ,_U.cmp(0,killedEnemyNum) < 0]
-                              ,["limitTime"
-                               ,initialLimitTime + (_v34.score / 5 | 0)]],
-            _v34);
-         }();
-      }();
-   });
    var generateObject = F2(function (i,
    _v40) {
       return function () {
@@ -898,7 +956,7 @@ Elm.ChargeShooting.make = function (_elm) {
       };
    };
    var step = F2(function (i,g) {
-      return g.isGameOver ? i.reset ? initialGame : g : A2(stepPlayGame,
+      return g.isGameOver ? i.reset ? initialGame : soundReset(g) : A2(stepPlayGame,
       i,
       g);
    });
@@ -940,7 +998,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,fps: fps
                                 ,width: width
                                 ,height: height
-                                ,initialLimitTime: initialLimitTime
+                                ,gaugeMax: gaugeMax
                                 ,Input: Input
                                 ,input: input
                                 ,Object: Object
@@ -948,11 +1006,13 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,initialPlayer: initialPlayer
                                 ,initialGame: initialGame
                                 ,step: step
+                                ,soundReset: soundReset
                                 ,stepPlayGame: stepPlayGame
                                 ,isGameOver: isGameOver
                                 ,update: update
                                 ,chargePlayer: chargePlayer
                                 ,collisionObject: collisionObject
+                                ,calcMgn: calcMgn
                                 ,generateEffect: generateEffect
                                 ,generateObject: generateObject
                                 ,genRandomFloat: genRandomFloat
@@ -967,12 +1027,15 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,moveEnemies: moveEnemies
                                 ,moveBullets: moveBullets
                                 ,display: display
+                                ,gameOverScene: gameOverScene
+                                ,background: background
                                 ,moveForm: moveForm
                                 ,effectsForm: effectsForm
                                 ,playerForm: playerForm
                                 ,bulletsForm: bulletsForm
                                 ,enemiesForm: enemiesForm
                                 ,coinsForm: coinsForm
+                                ,gaugeForm: gaugeForm
                                 ,game: game
                                 ,main: main};
    return _elm.ChargeShooting.values;
