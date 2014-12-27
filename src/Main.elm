@@ -285,17 +285,20 @@ moveBullets es bs =
           in
             moveObject b'
         Homing ->
-          let
-            distance x = (x.x - b.x)^2 + (x.y - b.y)^2
-            nearEnemy b es =
-              List.foldl1 (\e e' -> if (distance e) < (distance e') then e else e' ) es
-            e = nearEnemy b es
-            d = distance e |> sqrt
-            vx = (e.x - b.x) / d * 5
-            vy = (e.y - b.y) / d * 5
-            b' = if d < 100 then { b | vx <- vx, vy <- vy } else b
-          in
-            moveObject b'
+          if List.isEmpty es
+            then moveObject b
+            else
+              let
+                distance x = (x.x - b.x)^2 + (x.y - b.y)^2
+                nearEnemy b es =
+                  List.foldl1 (\e e' -> if (distance e) < (distance e') then e else e' ) es
+                e = nearEnemy b es
+                d = distance e |> sqrt
+                vx = (e.x - b.x) / d * 5
+                vy = (e.y - b.y) / d * 5
+                b' = if d < 100 then { b | vx <- vx, vy <- vy } else b
+              in
+                moveObject b'
   in
     (List.map moveBullet bs)
 
