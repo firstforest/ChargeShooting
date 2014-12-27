@@ -32,7 +32,8 @@ input = sampleOn (Time.fps fps) <|
 -- Model
 type alias Object a = { a | x:Float, y:Float, vx:Float, vy:Float, size:Float }
 type alias Player = Object { isLive:Bool }
-type alias Bullet = Object { level:Int, color:Color }
+type BulletType = Reflect | Homing
+type alias Bullet = Object { level:Int, color:Color , bType:BulletType }
 type alias Enemy = Object { hp:Int }
 type alias Effect = Object { color:Color }
 type alias Coin = Object {}
@@ -212,28 +213,30 @@ generateBullet : Input -> (Player, List Bullet) -> (Player, List Bullet)
 generateBullet {isDown, time} (p, bs) =
   if isDown then (p, bs)
   else
-    if | p.size > 22 -> ({p | size <- p.size - 5}, (makeBullet time p.x p.y 3) :: bs)
-       | p.size > 17 -> ({p | size <- p.size - 15}, (makeBullet time p.x p.y 1) :: bs)
+    if | p.size > 22 -> ({p | size <- p.size - 5}, (makeBullet Reflect time p.x p.y 3) :: bs)
+       | p.size > 17 -> ({p | size <- p.size - 15}, (makeBullet Homing time p.x p.y 2) :: bs)
        | otherwise -> (p, bs)
 
-makeBullet : Float -> Float -> Float -> Int -> Bullet
-makeBullet time x y l =
+makeBullet : BulletType -> Float -> Float -> Float -> Int -> Bullet
+makeBullet t time x y l =
   let
     gen = Random.generate (Random.float 0 1)
     (a, s) = gen (Random.initialSeed (round time))
     (b, _) = gen s
     g = sqrt (-2 * (logBase e a)) * cos (2 * pi * b)
     f l h = fst <| genRandomFloat l h (Random.initialSeed (round time))
-    vx = if l==1 then 0 else g * 3
-    c = if l==1 then black else hsla (degrees (f 0 360)) 0.9 0.6 0.7
+    (vx, c) =
+      case t of
+        Reflect -> (g * 3, hsla (degrees (f 0 360)) 0.9 0.6 0.7)
+        _ -> (0, black)
   in
-    { x=x, y=y, level=l, vx=vx, vy=-5, size=(l * 3), color=c }
+    { x=x, y=y, level=l, vx=vx, vy=-5, size=(toFloat l * 3), color=c, bType=t }
 
 ---Move
 moveObjects : Input -> Game -> Game
 moveObjects i ({player, bullets, enemies, coins} as g) =
   { g | player <- movePlayer i player
-  , bullets <- moveBullets bullets
+  , bullets <- moveBullets enemies bullets
   , enemies <- moveEnemies enemies
   , coins <- List.map moveObject coins
   }
@@ -265,20 +268,34 @@ moveEnemies es =
   in
     List.filter (\e -> inRange height e.y) (List.map move es)
 
-moveBullets : List Bullet -> List Bullet
-moveBullets bs =
+moveBullets : List Enemy -> List Bullet -> List Bullet
+moveBullets es bs =
   let
     moveBullet b =
-      let
-        isReflect limit x vx = x + vx < 0 || limit < x + vx
-        isReflectY = isReflect height b.y b.vy
-        isReflectX = isReflect width b.x b.vx
-        nextVY = if isReflectY then -b.vy else b.vy
-        nextVX = if isReflectX then -b.vx else b.vx
-        nextLevel = b.level - (if isReflectY || isReflectX then 1 else 0)
-        b' = {b | vx <- nextVX, vy <- nextVY, level <- nextLevel}
-      in
-        moveObject b'
+      case b.bType of
+        Reflect ->
+          let
+            isReflect limit x vx = x + vx < 0 || limit < x + vx
+            isReflectY = isReflect height b.y b.vy
+            isReflectX = isReflect width b.x b.vx
+            nextVY = if isReflectY then -b.vy else b.vy
+            nextVX = if isReflectX then -b.vx else b.vx
+            nextLevel = b.level - (if isReflectY || isReflectX then 1 else 0)
+            b' = { b | vx <- nextVX, vy <- nextVY, level <- nextLevel }
+          in
+            moveObject b'
+        Homing ->
+          let
+            distance x = (x.x - b.x)^2 + (x.y - b.y)^2
+            nearEnemy b es =
+              List.foldl1 (\e e' -> if (distance e) < (distance e') then e else e' ) es
+            e = nearEnemy b es
+            d = distance e |> sqrt
+            vx = (e.x - b.x) / d * 5
+            vy = (e.y - b.y) / d * 5
+            b' = { b | vx <- vx, vy <- vy }
+          in
+            moveObject b'
   in
     (List.map moveBullet bs)
 
