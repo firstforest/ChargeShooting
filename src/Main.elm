@@ -317,10 +317,10 @@ background gauge =
     a3 = if 100 + s2 < g && g <= gaugeMax then (g - 100 - s2) / s3 else 0
   in
     layers
-    [ image width height "./img/base.png"
-    , image width height "./img/b1.png" |> opacity a1
-    , image width height "./img/b2.png" |> opacity a2
-    , image width height "./img/b3.png" |> opacity a3
+    [ image width height "../img/base.png"
+    , image width height "../img/b1.png" |> opacity a1
+    , image width height "../img/b2.png" |> opacity a2
+    , image width height "../img/b3.png" |> opacity a3
     ]
 
 moveForm : Float -> Float -> Form -> Form
