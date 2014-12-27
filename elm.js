@@ -745,7 +745,7 @@ Elm.ChargeShooting.make = function (_elm) {
                var _v32 = b.bType;
                switch (_v32.ctor)
                {case "Homing":
-                  return function () {
+                  return $List.isEmpty(es) ? moveObject(b) : function () {
                        var distance = function (x) {
                           return Math.pow(x.x - b.x,
                           2) + Math.pow(x.y - b.y,2);
@@ -797,7 +797,7 @@ Elm.ChargeShooting.make = function (_elm) {
                        return moveObject(b$);
                     }();}
                _U.badCase($moduleName,
-               "between lines 275 and 299");
+               "between lines 275 and 302");
             }();
          };
          return A2($List.map,
