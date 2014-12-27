@@ -13,6 +13,7 @@ import List ((::))
 import Random
 import Keyboard
 import Char
+import Debug
 
 -- Global Setting
 fps = 30
@@ -291,10 +292,10 @@ display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
     [ background comboGauge
     , collage width height
         [ effectsForm effects
-        , playerForm player
         , coinsForm coins
-        , bulletsForm bullets
         , enemiesForm enemies
+        , playerForm player
+        , bulletsForm bullets
         , gaugeForm comboGauge
         ]
     , plainText ("score:" ++ toString g.score)
@@ -316,15 +317,18 @@ background gauge =
     s1 = range / 3
     s2 = range / 3
     s3 = range / 4
-    a1 = if 100 < g && g <= 100 + s1 then (g - 100) / s1 else 0
-    a2 = if 100 + s1 < g && g <= 100 + s2 then (g - 100 - s1) / s2 else 0
-    a3 = if 100 + s2 < g && g <= gaugeMax then (g - 100 - s2) / s3 else 0
+    f l h g = if | g < 100 + l -> 0
+                 | 100 + h < g -> 1
+                 | otherwise -> (g - 100) / h
+    a1 = f 0 s1 g
+    a2 = f s1 (s1 + s2) g
+    a3 = f (s1 + s2) (s1 + s2 + s3) g
   in
     layers
     [ image width height "../img/base.png"
-    , image width height "../img/b1.png" |> opacity a1
-    , image width height "../img/b2.png" |> opacity a2
-    , image width height "../img/b3.png" |> opacity a3
+    , image width height "../img/b1.png" |> opacity (Debug.watch "a1" a1)
+    , image width height "../img/b2.png" |> opacity (Debug.watch "a2" a2)
+    , image width height "../img/b3.png" |> opacity (Debug.watch "a3" a3)
     ]
 
 moveForm : Float -> Float -> Form -> Form
