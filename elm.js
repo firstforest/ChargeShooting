@@ -291,7 +291,7 @@ Elm.ChargeShooting.make = function (_elm) {
             switch (_.ctor)
             {case "_Tuple2": return _._0;}
             _U.badCase($moduleName,
-            "on line 225, column 14 to 19");
+            "on line 229, column 14 to 19");
          }();
          var g = $Basics.sqrt(-2 * A2($Basics.logBase,
          $Basics.e,
@@ -380,7 +380,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                                   A2(generateCoin,e.x,e.y),
                                                   _v6._1)};}
                      _U.badCase($moduleName,
-                     "between lines 103 and 105");
+                     "between lines 107 and 109");
                   }();
                });
                return A3($List.foldl,
@@ -460,19 +460,22 @@ Elm.ChargeShooting.make = function (_elm) {
                               return function (j) {
                                  return function (k) {
                                     return function (l) {
-                                       return {_: {}
-                                              ,bgm: j
-                                              ,bullets: b
-                                              ,coins: e
-                                              ,comboGauge: l
-                                              ,effects: d
-                                              ,enemies: c
-                                              ,frame: f
-                                              ,isBomb: i
-                                              ,isGameOver: h
-                                              ,isGet: k
-                                              ,player: a
-                                              ,score: g};
+                                       return function (m) {
+                                          return {_: {}
+                                                 ,bgm: j
+                                                 ,bullets: b
+                                                 ,coins: e
+                                                 ,comboGauge: l
+                                                 ,effects: d
+                                                 ,enemies: c
+                                                 ,frame: f
+                                                 ,isBomb: i
+                                                 ,isGameOver: h
+                                                 ,isGet: k
+                                                 ,player: a
+                                                 ,score: g
+                                                 ,state: m};
+                                       };
                                     };
                                  };
                               };
@@ -485,6 +488,9 @@ Elm.ChargeShooting.make = function (_elm) {
          };
       };
    };
+   var GameOver = {ctor: "GameOver"};
+   var Playing = {ctor: "Playing"};
+   var Title = {ctor: "Title"};
    var Homing = {ctor: "Homing"};
    var Reflect = {ctor: "Reflect"};
    var generateBullet = F2(function (_v12,
@@ -524,7 +530,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                        ,_1: _v13._1};
               }();}
          _U.badCase($moduleName,
-         "between lines 214 and 218");
+         "between lines 218 and 222");
       }();
    });
    var Object = F6(function (a,
@@ -596,7 +602,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                                    _v20._0)
                                                    ,_1: _v20._1};}
                   _U.badCase($moduleName,
-                  "between lines 156 and 158");
+                  "between lines 160 and 162");
                }();
             }),
             {ctor: "_Tuple2"
@@ -680,7 +686,8 @@ Elm.ChargeShooting.make = function (_elm) {
                      ,isGameOver: false
                      ,isGet: false
                      ,player: initialPlayer
-                     ,score: 0};
+                     ,score: 0
+                     ,state: Title};
    var generateEnemy = F2(function (n,
    _v24) {
       return function () {
@@ -697,7 +704,7 @@ Elm.ChargeShooting.make = function (_elm) {
                           _v27._1);
                        }();}
                   _U.badCase($moduleName,
-                  "on line 204, column 21 to 45");
+                  "on line 208, column 21 to 45");
                }();
             });
             var seed = $Random.initialSeed($Basics.round(_v24.time));
@@ -797,7 +804,7 @@ Elm.ChargeShooting.make = function (_elm) {
                        return moveObject(b$);
                     }();}
                _U.badCase($moduleName,
-               "between lines 275 and 302");
+               "between lines 279 and 306");
             }();
          };
          return A2($List.map,
@@ -865,6 +872,11 @@ Elm.ChargeShooting.make = function (_elm) {
                                                       "./img/b3.png"))]));
       }();
    };
+   var titleScene = $Graphics$Element.layers(_L.fromArray([background(0)
+                                                          ,A3($Graphics$Element.container,
+                                                          width,
+                                                          height,
+                                                          $Graphics$Element.middle)($Text.centered($Text.fromString("click to start")))]));
    var gameOverScene = function (g) {
       return $Graphics$Element.layers(_L.fromArray([background(g.comboGauge)
                                                    ,A3($Graphics$Element.container,
@@ -972,19 +984,30 @@ Elm.ChargeShooting.make = function (_elm) {
    };
    var display = function (_v43) {
       return function () {
-         return _v43.isGameOver ? gameOverScene(_v43) : $Graphics$Element.layers(_L.fromArray([background(_v43.comboGauge)
-                                                                                              ,A3($Graphics$Collage.collage,
-                                                                                              width,
-                                                                                              height,
-                                                                                              _L.fromArray([effectsForm(_v43.effects)
-                                                                                                           ,coinsForm(_v43.coins)
-                                                                                                           ,enemiesForm(_v43.enemies)
-                                                                                                           ,playerForm(_v43.player)
-                                                                                                           ,bulletsForm(_v43.bullets)
-                                                                                                           ,gaugeForm(_v43.comboGauge)]))
-                                                                                              ,$Text.plainText(A2($Basics._op["++"],
-                                                                                              "score:",
-                                                                                              $Basics.toString(_v43.score)))]));
+         return function () {
+            var _v45 = _v43.state;
+            switch (_v45.ctor)
+            {case "GameOver":
+               return gameOverScene(_v43);
+               case "Playing":
+               return $Graphics$Element.layers(_L.fromArray([background(_v43.comboGauge)
+                                                            ,A3($Graphics$Collage.collage,
+                                                            width,
+                                                            height,
+                                                            _L.fromArray([effectsForm(_v43.effects)
+                                                                         ,coinsForm(_v43.coins)
+                                                                         ,enemiesForm(_v43.enemies)
+                                                                         ,playerForm(_v43.player)
+                                                                         ,bulletsForm(_v43.bullets)
+                                                                         ,gaugeForm(_v43.comboGauge)]))
+                                                            ,$Text.plainText(A2($Basics._op["++"],
+                                                            "score:",
+                                                            $Basics.toString(_v43.score)))]));
+               case "Title":
+               return titleScene;}
+            _U.badCase($moduleName,
+            "between lines 312 and 327");
+         }();
       }();
    };
    var fps = 30;
@@ -998,28 +1021,28 @@ Elm.ChargeShooting.make = function (_elm) {
    $Keyboard.isDown($Char.toCode(_U.chr("r")))),
    $Time.every($Time.millisecond)));
    var generateObject = F2(function (i,
-   _v45) {
+   _v46) {
       return function () {
          return function () {
-            var newEnemyNum = (_v45.frame / 1000 | 0) + 1;
+            var newEnemyNum = (_v46.frame / 1000 | 0) + 1;
             var newEnemies = _U.eq(A2($Basics._op["%"],
-            _v45.frame,
+            _v46.frame,
             fps / 3 | 0),
             0) ? A2($List.append,
             A2(generateEnemy,newEnemyNum,i),
-            _v45.enemies) : _v45.enemies;
+            _v46.enemies) : _v46.enemies;
             var $ = A2(generateBullet,
             i,
             {ctor: "_Tuple2"
-            ,_0: _v45.player
-            ,_1: _v45.bullets}),
+            ,_0: _v46.player
+            ,_1: _v46.bullets}),
             newPlayer = $._0,
             newBullets = $._1;
             return _U.replace([["player"
                                ,newPlayer]
                               ,["bullets",newBullets]
                               ,["enemies",newEnemies]],
-            _v45);
+            _v46);
          }();
       }();
    });
@@ -1029,9 +1052,24 @@ Elm.ChargeShooting.make = function (_elm) {
       };
    };
    var step = F2(function (i,g) {
-      return g.isGameOver ? i.reset ? initialGame : soundReset(g) : A2(stepPlayGame,
-      i,
-      g);
+      return function () {
+         var _v48 = g.state;
+         switch (_v48.ctor)
+         {case "GameOver":
+            return i.reset ? _U.replace([["state"
+                                         ,Playing]],
+              initialGame) : soundReset(g);
+            case "Playing":
+            return g.isGameOver ? _U.replace([["state"
+                                              ,GameOver]],
+              g) : A2(stepPlayGame,i,g);
+            case "Title":
+            return i.isDown ? _U.replace([["state"
+                                          ,Playing]],
+              g) : g;}
+         _U.badCase($moduleName,
+         "between lines 84 and 87");
+      }();
    });
    var game = A3($Signal.foldp,
    step,
@@ -1077,6 +1115,9 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,Object: Object
                                 ,Reflect: Reflect
                                 ,Homing: Homing
+                                ,Title: Title
+                                ,Playing: Playing
+                                ,GameOver: GameOver
                                 ,Game: Game
                                 ,initialPlayer: initialPlayer
                                 ,initialGame: initialGame
@@ -1102,6 +1143,7 @@ Elm.ChargeShooting.make = function (_elm) {
                                 ,moveEnemies: moveEnemies
                                 ,moveBullets: moveBullets
                                 ,display: display
+                                ,titleScene: titleScene
                                 ,gameOverScene: gameOverScene
                                 ,background: background
                                 ,moveForm: moveForm
