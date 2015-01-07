@@ -37,6 +37,7 @@ type alias Bullet = Object { level:Int, color:Color , bType:BulletType }
 type alias Enemy = Object { hp:Int }
 type alias Effect = Object { color:Color }
 type alias Coin = Object {}
+type State = Title | Playing | GameOver
 type alias Game =
   { player:Player
   , bullets:List Bullet
@@ -50,6 +51,7 @@ type alias Game =
   , bgm:String
   , isGet:Bool
   , comboGauge:Int
+  , state:State
   }
 
 initialPlayer =
@@ -73,14 +75,16 @@ initialGame =
   , bgm="BGM"
   , isGet=False
   , comboGauge=0
+  , state=Title
   }
 
 --Update
 step : Input -> Game -> Game
 step i g =
-  if g.isGameOver
-    then if i.reset then initialGame else soundReset g
-    else stepPlayGame i g
+  case g.state of
+    Title -> if i.isDown then { g | state <- Playing } else g
+    Playing -> if g.isGameOver then { g | state <- GameOver } else stepPlayGame i g
+    GameOver -> if i.reset then { initialGame | state <- Playing } else soundReset g
 
 soundReset : Game -> Game
 soundReset g = { g | isBomb <- False, isGet <- False }
@@ -305,22 +309,30 @@ moveBullets es bs =
 --View
 display : Game -> Element
 display ({player, bullets, enemies, effects, coins, comboGauge} as g) =
-  if g.isGameOver
-  then gameOverScene g
-  else
-    layers
-    [ background comboGauge
-    , collage width height
-        [ effectsForm effects
-        , coinsForm coins
-        , enemiesForm enemies
-        , playerForm player
-        , bulletsForm bullets
-        , gaugeForm comboGauge
-        ]
-    , plainText ("score:" ++ toString g.score)
-    ]
+  case g.state of
+    Title -> titleScene
+    GameOver -> gameOverScene g
+    Playing ->
+      layers
+      [ background comboGauge
+      , collage width height
+          [ effectsForm effects
+          , coinsForm coins
+          , enemiesForm enemies
+          , playerForm player
+          , bulletsForm bullets
+          , gaugeForm comboGauge
+          ]
+      , plainText ("score:" ++ toString g.score)
+      ]
 
+titleScene : Element
+titleScene =
+  layers
+  [ background 0
+  , container width height middle <| centered <| fromString <|
+      "click to start"
+  ]
 gameOverScene : Game -> Element
 gameOverScene g =
   layers
